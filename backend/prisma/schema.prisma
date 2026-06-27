@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  ADMIN
+  VENDEDOR
+}
+
+enum EstadoVehiculo {
+  DISPONIBLE
+  RESERVADO
+  VENDIDO
+}
+
+enum Transmision {
+  AUTOMATICA
+  ESTANDAR
+}
+
+enum Combustible {
+  GASOLINA
+  DIESEL
+  HIBRIDO
+  ELECTRICO
+}
+
+model Sucursal {
+  id               Int        @id @default(autoincrement())
+  nombre           String
+  nombreComercial  String?    // nombre que aparece en el contrato (ej. "EMPALME MOTORS"); si es null usa `nombre`
+  domicilio        String?
+  colonia          String?
+  codigoPostal     String?
+  ciudadEstado     String?
+  telefono         String?
+  logo             String?    // data URL base64
+  serieFolio       String     @default("A")
+  consecutivoFolio Int        @default(0)
+  activo           Boolean    @default(true)
+  empleados        Empleado[]
+  vehiculos        Vehiculo[]
+  ventas           Venta[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Empleado {
+  id           Int       @id @default(autoincrement())
+  nombre       String
+  apellidos    String
+  telefono     String?
+  email        String?
+  puesto       String
+  sucursalId   Int
+  sucursal     Sucursal  @relation(fields: [sucursalId], references: [id])
+  fechaIngreso DateTime  @default(now())
+  activo       Boolean   @default(true)
+  usuario      Usuario?
+  ventas       Venta[]   @relation("ventasVendedor")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Usuario {
+  id                  Int      @id @default(autoincrement())
+  username            String   @unique
+  passwordHash        String
+  rol                 Rol
+  activo              Boolean  @default(true)
+  debeCambiarPassword Boolean  @default(false)
+  empleadoId          Int?     @unique
+  empleado            Empleado? @relation(fields: [empleadoId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Cliente {
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  domicilio    String?
+  colonia      String?
+  codigoPostal String?
+  ciudadEstado String?
+  telefono     String?
+  ventas       Venta[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Vehiculo {
+  id           Int            @id @default(autoincrement())
+  sucursalId   Int
+  sucursal     Sucursal       @relation(fields: [sucursalId], references: [id])
+  anio         Int
+  marca        String
+  modelo       String
+  color        String?
+  vin          String?
+  placa        String?
+  kilometraje  Int?
+  transmision  Transmision?
+  combustible  Combustible?
+  costoCompra  Float          @default(0)
+  precioVenta  Float          @default(0)
+  estado       EstadoVehiculo @default(DISPONIBLE)
+  notas        String?
+  fechaIngreso DateTime       @default(now())
+  fotos        VehiculoFoto[]
+  venta        Venta?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model VehiculoFoto {
+  id         Int      @id @default(autoincrement())
+  vehiculoId Int
+  vehiculo   Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  data       String   // data URL base64
+  orden      Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model Venta {
+  id            Int      @id @default(autoincrement())
+  folio         String   @unique
+  sucursalId    Int
+  sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
+  vehiculoId    Int      @unique
+  vehiculo      Vehiculo @relation(fields: [vehiculoId], references: [id])
+  clienteId     Int
+  cliente       Cliente  @relation(fields: [clienteId], references: [id])
+  empleadoId    Int
+  empleado      Empleado @relation("ventasVendedor", fields: [empleadoId], references: [id])
+  total         Float
+  observaciones String   @default("SIN GARANTÍA")
+  fecha         DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Configuracion {
+  id                   Int      @id @default(1)
+  diasAntiguedadAlerta Int      @default(60)
+  terminosContrato     String   @default("1-. EN CASO DE INCUMPLIMIENTO DE CONTRATO Y/O DEVOLUCIÓN SE PENALIZARÁ ECONÓMICAMENTE.\n2-. EL PAGO DE LA UNIDAD ES EN UNA SOLA EXHIBICIÓN.\n3-. LA UNIDAD NO CUENTA CON GARANTÍA")
+  updatedAt            DateTime @updatedAt
+}
+
+model Auditoria {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  accion    String
+  entidad   String
+  entidadId Int?
+  datos     Json?
+  ip        String?
+  fecha     DateTime @default(now())
+}
