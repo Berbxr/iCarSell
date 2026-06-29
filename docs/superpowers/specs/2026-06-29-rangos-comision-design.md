@@ -110,10 +110,17 @@ vigentes, se calcula y se guarda en `Venta.comision`.
 
 ### Nuevo reporte de comisiones (solo ADMIN)
 
-- `GET /reportes/comisiones?desde&hasta&sucursalId`
-- Agrupa las ventas del periodo por vendedor (`empleado`), devolviendo por cada
-  uno: nombre, cantidad de ventas y suma de comisiones. Incluye total general a
-  pagar.
+- `GET /reportes/comisiones?fecha=YYYY-MM-DD&sucursalId`
+- **Vista semanal:** el reporte se consulta por **semana** (lunes a domingo). El
+  parámetro `fecha` es una fecha de referencia; el backend calcula el lunes
+  00:00:00 y el domingo 23:59:59.999 de la semana que la contiene, usando la
+  zona horaria del servidor (`TZ`, por defecto `America/Tijuana`). Si se omite
+  `fecha`, se usa la semana actual.
+- Agrupa las ventas de esa semana por vendedor (`empleado`), devolviendo por
+  cada uno: nombre, lista de sus ventas (folio, auto, comisión) y suma de
+  comisiones. Incluye total general a pagar de la semana.
+- Devuelve también los límites calculados de la semana (`inicio`, `fin`) para
+  que el frontend los muestre.
 
 ## Frontend
 
@@ -129,7 +136,13 @@ vigentes, se calcula y se guarda en `Venta.comision`.
 
 ### Nuevo reporte de comisiones
 
-- Nueva vista/sección de reporte por vendedor y periodo, con total a pagar.
+- Nueva vista/sección de reporte **por semana** (lunes a domingo), con total a
+  pagar por vendedor.
+- **Selector de semana** con flechas ‹ anterior / siguiente › y la semana
+  actual por defecto. Muestra el rango de fechas de la semana visible
+  (ej. "Lun 23 jun – Dom 29 jun").
+- Por cada vendedor: sus ventas de la semana (folio, auto, comisión) y su total
+  a pagar. Total general de la semana al final.
 
 ## Migración de datos
 
@@ -160,6 +173,9 @@ vigentes, se calcula y se guarda en `Venta.comision`.
 - `PUT /configuracion/comisiones` valida (rechaza duplicados, montos negativos,
   lista vacía).
 - `GET /reportes/comisiones` agrupa correctamente por vendedor y suma totales.
+- `GET /reportes/comisiones` con `fecha` calcula la semana lunes–domingo
+  correcta e incluye solo las ventas de esa semana (verificar bordes: venta el
+  lunes 00:00 y el domingo 23:59 sí entran; lunes de la semana siguiente no).
 - RBAC: un VENDEDOR no recibe comisiones en reportes ni puede editar rangos.
 
 ## Fuera de alcance (YAGNI)
