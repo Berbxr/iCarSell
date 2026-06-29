@@ -138,6 +138,7 @@ model Venta {
   empleadoId    Int
   empleado      Empleado @relation("ventasVendedor", fields: [empleadoId], references: [id])
   total         Float
+  comision      Float    @default(0)
   observaciones String   @default("SIN GARANTÍA")
   fecha         DateTime @default(now())
   createdAt     DateTime @default(now())
@@ -160,4 +161,12 @@ model Auditoria {
   datos     Json?
   ip        String?
   fecha     DateTime @default(now())
+}
+
+model RangoComision {
+  id        Int      @id @default(autoincrement())
+  orden     Int
+  desdeUsd  Float
+  monto     Float
+  updatedAt DateTime @updatedAt
 }
