@@ -10,9 +10,11 @@ datasource db {
 enum Rol {
   ADMIN
   VENDEDOR
+  ALMACEN
 }
 
 enum EstadoVehiculo {
+  EN_COMPRA
   DISPONIBLE
   RESERVADO
   VENDIDO
@@ -106,12 +108,18 @@ model Vehiculo {
   kilometraje  Int?
   transmision  Transmision?
   combustible  Combustible?
-  costoCompra  Float          @default(0)
+  precioCompra      Float     @default(0)
+  comisionProveedor Float     @default(0)
+  transporte        Float     @default(0)
+  registroPlacas    Float     @default(0)
+  salidas           Float     @default(0)
   precioVenta  Float          @default(0)
+  fechaPaseAVenta DateTime?
   estado       EstadoVehiculo @default(DISPONIBLE)
   notas        String?
   fechaIngreso DateTime       @default(now())
   fotos        VehiculoFoto[]
+  gastos       GastoVehiculo[]
   venta        Venta?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -169,4 +177,13 @@ model RangoComision {
   desdeUsd  Float
   monto     Float
   updatedAt DateTime @updatedAt
+}
+
+model GastoVehiculo {
+  id          Int      @id @default(autoincrement())
+  vehiculoId  Int
+  vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  descripcion String
+  monto       Float
+  createdAt   DateTime @default(now())
 }
