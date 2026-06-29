@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { ApiError } = require('../middlewares/error');
 const { formatearFolio } = require('../utils/folio');
+const { calcularComision } = require('../utils/comision');
 
 async function crearVenta({ sucursalId, vehiculoId, clienteId, empleadoId, total, observaciones }) {
   return prisma.$transaction(async (tx) => {
@@ -12,10 +13,13 @@ async function crearVenta({ sucursalId, vehiculoId, clienteId, empleadoId, total
     const sucursal = await tx.sucursal.update({ where: { id: sucursalId }, data: { consecutivoFolio: { increment: 1 } } });
     const folio = formatearFolio(sucursal.serieFolio, sucursal.consecutivoFolio);
 
+    const rangos = await tx.rangoComision.findMany();
+    const comision = calcularComision(vehiculo.precioVenta, rangos);
+
     const venta = await tx.venta.create({
       data: {
         folio, sucursalId, vehiculoId: Number(vehiculoId), clienteId: Number(clienteId), empleadoId: Number(empleadoId),
-        total: Number(total), observaciones: observaciones && observaciones.trim() ? observaciones : 'SIN GARANTÍA',
+        total: Number(total), comision, observaciones: observaciones && observaciones.trim() ? observaciones : 'SIN GARANTÍA',
       },
     });
     await tx.vehiculo.update({ where: { id: Number(vehiculoId) }, data: { estado: 'VENDIDO' } });

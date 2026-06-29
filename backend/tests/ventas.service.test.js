@@ -6,6 +6,11 @@ jest.mock('../src/config/prisma', () => {
     },
     sucursal: { update: jest.fn() },
     venta: { create: jest.fn() },
+    rangoComision: { findMany: jest.fn().mockResolvedValue([
+      { desdeUsd: 0, monto: 1000 },
+      { desdeUsd: 6000, monto: 1600 },
+      { desdeUsd: 10000, monto: 2600 },
+    ]) },
   };
   return { __tx: tx, $transaction: jest.fn(async (fn) => fn(tx)) };
 });
@@ -28,6 +33,16 @@ describe('crearVenta', () => {
     expect(tx.sucursal.update).toHaveBeenCalledWith(expect.objectContaining({ data: { consecutivoFolio: { increment: 1 } } }));
     expect(tx.vehiculo.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 10 }, data: { estado: 'VENDIDO' } }));
     expect(venta.observaciones).toBe('SIN GARANTÍA');
+  });
+
+  test('calcula y guarda la comisión según el precio de lista del vehículo', async () => {
+    tx.vehiculo.findUnique.mockResolvedValue({ id: 10, sucursalId: 2, estado: 'DISPONIBLE', precioVenta: 12000 });
+    tx.sucursal.update.mockResolvedValue({ id: 2, serieFolio: 'A', consecutivoFolio: 1 });
+    tx.venta.create.mockImplementation(({ data }) => Promise.resolve({ id: 1, ...data }));
+
+    const venta = await crearVenta({ sucursalId: 2, vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 11000 });
+
+    expect(venta.comision).toBe(2600); // precioVenta 12000 USD => rango 3
   });
 
   test('rechaza vehículo de otra sucursal', async () => {
