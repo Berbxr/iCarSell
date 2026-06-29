@@ -18,7 +18,7 @@ async function crear(req, res, next) {
   try {
     const { username, password, rol, empleadoId } = req.body;
     if (!username || !password || !rol) throw new ApiError(400, 'username, password y rol son obligatorios');
-    if (!['ADMIN', 'VENDEDOR'].includes(rol)) throw new ApiError(400, 'Rol inválido');
+    if (!['ADMIN', 'VENDEDOR', 'ALMACEN'].includes(rol)) throw new ApiError(400, 'Rol inválido');
     if (password.length < 6) throw new ApiError(400, 'La contraseña debe tener al menos 6 caracteres');
     const existe = await prisma.usuario.findUnique({ where: { username } });
     if (existe) throw new ApiError(409, 'El username ya existe');

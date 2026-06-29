@@ -3,7 +3,7 @@ const { ApiError } = require('../middlewares/error');
 // Para listados/reportes. ADMIN: undefined = todas, o filtra por ?sucursalId.
 // VENDEDOR: siempre su sucursal.
 function resolverSucursalLectura(req) {
-  if (req.usuario.rol === 'ADMIN') {
+  if (req.usuario.rol === 'ADMIN' || req.usuario.rol === 'ALMACEN') {
     const q = req.query ? req.query.sucursalId : undefined;
     return q ? Number(q) : undefined;
   }
@@ -13,7 +13,7 @@ function resolverSucursalLectura(req) {
 
 // Para crear/editar. ADMIN: debe indicar sucursalId. VENDEDOR: forzado al suyo.
 function resolverSucursalEscritura(req, sucursalIdSolicitada) {
-  if (req.usuario.rol === 'ADMIN') {
+  if (req.usuario.rol === 'ADMIN' || req.usuario.rol === 'ALMACEN') {
     if (!sucursalIdSolicitada) throw new ApiError(400, 'sucursalId es obligatorio');
     return Number(sucursalIdSolicitada);
   }
