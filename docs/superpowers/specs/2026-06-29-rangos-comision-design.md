@@ -34,6 +34,11 @@ Actualmente no existe ningún concepto de comisión en el sistema.
 5. **Ubicación:** las comisiones se muestran en (a) un nuevo reporte de
    comisiones por vendedor y periodo, y (b) una columna/total en el reporte de
    ventas existente.
+6. **Comisión por venta individual:** cada venta genera UNA comisión según el
+   rango del auto vendido. La comisión NUNCA se calcula sobre una suma de
+   ventas. En los reportes, los totales son una simple suma de los pagos
+   individuales (cuánto pagarle al vendedor en el periodo); jamás recalculan el
+   rango sobre el monto acumulado.
 
 ## Modelo de datos (Prisma)
 
