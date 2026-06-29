@@ -28,12 +28,12 @@ export default function Reportes() {
 
   function exportarCSV() {
     if (!ventas) return;
-    const filas = [['Folio', 'Fecha', 'Vehículo', 'Cliente', 'Vendedor', 'Total', 'Utilidad']];
+    const filas = [['Folio', 'Fecha', 'Vehículo', 'Cliente', 'Vendedor', 'Total', 'Utilidad', 'Comisión']];
     ventas.ventas.forEach((v) => filas.push([
       v.folio, new Date(v.fecha).toLocaleDateString('es-MX'),
       `${v.vehiculo?.anio} ${v.vehiculo?.marca} ${v.vehiculo?.modelo}`,
       v.cliente?.nombre, `${v.empleado?.nombre || ''} ${v.empleado?.apellidos || ''}`,
-      v.total, (v.vehiculo ? v.vehiculo.precioVenta - v.vehiculo.costoCompra : 0),
+      v.total, (v.vehiculo ? v.vehiculo.precioVenta - v.vehiculo.costoCompra : 0), v.comision ?? 0,
     ]));
     const csv = filas.map((f) => f.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -55,13 +55,16 @@ export default function Reportes() {
             <div className="kpi"><h3>Monto vendido</h3><div className="valor">${ventas.totales.monto.toLocaleString('es-MX')}</div></div>
             <div className="kpi"><h3>Ventas</h3><div className="valor">{ventas.totales.cantidad}</div></div>
             <div className="kpi"><h3>Utilidad</h3><div className="valor">${ventas.totales.utilidad.toLocaleString('es-MX')}</div></div>
+            {ventas.totales.comision !== undefined && (
+              <div className="kpi"><h3>Comisiones</h3><div className="valor">${ventas.totales.comision.toLocaleString('es-MX')}</div></div>
+            )}
           </div>
           <div className="row" style={{ marginBottom: 10 }}>
             <h2 style={{ flex: 1 }}>Ventas</h2>
             <button className="btn btn-sm" onClick={exportarCSV}>Exportar CSV</button>
           </div>
           <table>
-            <thead><tr><th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Utilidad</th></tr></thead>
+            <thead><tr><th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Utilidad</th><th>Comisión</th></tr></thead>
             <tbody>{ventas.ventas.map((v) => (
               <tr key={v.id}>
                 <td>{v.folio}</td><td>{new Date(v.fecha).toLocaleDateString('es-MX')}</td>
@@ -70,6 +73,7 @@ export default function Reportes() {
                 <td>{v.empleado?.nombre} {v.empleado?.apellidos}</td>
                 <td>${Number(v.total).toLocaleString('es-MX')}</td>
                 <td>${(v.vehiculo ? v.vehiculo.precioVenta - v.vehiculo.costoCompra : 0).toLocaleString('es-MX')}</td>
+                <td>{v.comision !== undefined ? `$${Number(v.comision).toLocaleString('es-MX')}` : '—'}</td>
               </tr>
             ))}</tbody>
           </table>

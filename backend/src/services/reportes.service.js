@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
+const { rangoSemana } = require('../utils/semana');
 
-async function ventas({ sucursalId, desde, hasta }) {
+async function ventas({ sucursalId, desde, hasta, esAdmin }) {
   const where = {};
   if (sucursalId !== undefined) where.sucursalId = sucursalId;
   if (desde || hasta) {
@@ -16,7 +17,14 @@ async function ventas({ sucursalId, desde, hasta }) {
     monto: a.monto + v.total,
     cantidad: a.cantidad + 1,
     utilidad: a.utilidad + (v.vehiculo ? v.vehiculo.precioVenta - v.vehiculo.costoCompra : 0),
-  }), { monto: 0, cantidad: 0, utilidad: 0 });
+    comision: a.comision + (v.comision || 0),
+  }), { monto: 0, cantidad: 0, utilidad: 0, comision: 0 });
+
+  if (!esAdmin) {
+    const sinComision = lista.map(({ comision, ...resto }) => resto);
+    const { comision, ...totalesSinComision } = totales;
+    return { ventas: sinComision, totales: totalesSinComision };
+  }
   return { ventas: lista, totales };
 }
 
@@ -30,4 +38,26 @@ async function inventario({ sucursalId }) {
   return { vehiculos: conDias, porEstado };
 }
 
-module.exports = { ventas, inventario };
+async function comisiones({ sucursalId, fecha }) {
+  const { inicio, fin } = rangoSemana(fecha ? new Date(fecha) : new Date());
+  const where = { fecha: { gte: inicio, lte: fin } };
+  if (sucursalId !== undefined) where.sucursalId = sucursalId;
+  const lista = await prisma.venta.findMany({
+    where, orderBy: { fecha: 'asc' },
+    include: { vehiculo: { select: { anio: true, marca: true, modelo: true } }, empleado: { select: { id: true, nombre: true, apellidos: true } } },
+  });
+  const porVendedor = new Map();
+  for (const v of lista) {
+    if (!porVendedor.has(v.empleadoId)) {
+      porVendedor.set(v.empleadoId, { empleadoId: v.empleadoId, nombre: v.empleado?.nombre || '', apellidos: v.empleado?.apellidos || '', ventas: [], total: 0 });
+    }
+    const g = porVendedor.get(v.empleadoId);
+    g.ventas.push({ id: v.id, folio: v.folio, vehiculo: `${v.vehiculo?.anio ?? ''} ${v.vehiculo?.marca ?? ''} ${v.vehiculo?.modelo ?? ''}`.trim(), comision: v.comision || 0 });
+    g.total += v.comision || 0;
+  }
+  const vendedores = [...porVendedor.values()];
+  const totalGeneral = vendedores.reduce((a, g) => a + g.total, 0);
+  return { inicio, fin, vendedores, totalGeneral };
+}
+
+module.exports = { ventas, inventario, comisiones };

@@ -10,6 +10,7 @@ const GRUPOS = [
   ] },
   { label: 'Administración', items: [
     { to: '/reportes', label: 'Reportes', roles: ['ADMIN'] },
+    { to: '/comisiones', label: 'Comisiones', roles: ['ADMIN'] },
     { to: '/empleados', label: 'Empleados', roles: ['ADMIN'] },
     { to: '/sucursales', label: 'Sucursales', roles: ['ADMIN'] },
     { to: '/usuarios', label: 'Usuarios', roles: ['ADMIN'] },

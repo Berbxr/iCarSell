@@ -8,6 +8,7 @@ import Ventas from './pages/Ventas';
 import Inventario from './pages/Inventario';
 import Clientes from './pages/Clientes';
 import Reportes from './pages/Reportes';
+import Comisiones from './pages/Comisiones';
 import Empleados from './pages/Empleados';
 import Sucursales from './pages/Sucursales';
 import Usuarios from './pages/Usuarios';
@@ -28,6 +29,7 @@ export default function App() {
       <Route path="/inventario" element={<Privada><RequireRol roles={AMBOS}><Inventario /></RequireRol></Privada>} />
       <Route path="/clientes" element={<Privada><RequireRol roles={AMBOS}><Clientes /></RequireRol></Privada>} />
       <Route path="/reportes" element={<Privada><RequireRol roles={SOLO_ADMIN}><Reportes /></RequireRol></Privada>} />
+      <Route path="/comisiones" element={<Privada><RequireRol roles={SOLO_ADMIN}><Comisiones /></RequireRol></Privada>} />
       <Route path="/empleados" element={<Privada><RequireRol roles={SOLO_ADMIN}><Empleados /></RequireRol></Privada>} />
       <Route path="/sucursales" element={<Privada><RequireRol roles={SOLO_ADMIN}><Sucursales /></RequireRol></Privada>} />
       <Route path="/usuarios" element={<Privada><RequireRol roles={SOLO_ADMIN}><Usuarios /></RequireRol></Privada>} />
