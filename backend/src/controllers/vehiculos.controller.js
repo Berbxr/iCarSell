@@ -1,13 +1,14 @@
 const prisma = require('../config/prisma');
 const { ApiError } = require('../middlewares/error');
-const { resolverSucursalLectura, resolverSucursalEscritura } = require('../utils/alcance');
+const { resolverSucursalEscritura } = require('../utils/alcance');
 const { procesarEntradas, eliminarArchivo } = require('../utils/fotosVehiculo');
 const { vistaVehiculo } = require('../utils/costos');
 const auditoria = require('../services/auditoria.service');
 
 const ESTADOS = ['EN_COMPRA', 'DISPONIBLE', 'RESERVADO', 'VENDIDO'];
 const CAMPOS = ['marca', 'modelo', 'color', 'vin', 'placa', 'notas'];
-const INCLUDE_DETALLE = { fotos: { orderBy: { orden: 'asc' } }, gastos: true, venta: { select: { fecha: true } } };
+const SOCIO_SEL = { select: { id: true, nombre: true } };
+const INCLUDE_DETALLE = { fotos: { orderBy: { orden: 'asc' } }, gastos: true, venta: { select: { fecha: true } }, socio: SOCIO_SEL };
 
 function datosBase(body) {
   const data = {};
@@ -20,14 +21,15 @@ function datosBase(body) {
   if (body.precioVenta !== undefined) data.precioVenta = Number(body.precioVenta) || 0;
   if (body.transmision !== undefined) data.transmision = body.transmision || null;
   if (body.combustible !== undefined) data.combustible = body.combustible || null;
+  if (body.socioId !== undefined) data.socioId = Number(body.socioId);
   return data;
 }
 
 async function listar(req, res, next) {
   try {
     const where = {};
-    const sucursalId = resolverSucursalLectura(req);
-    if (sucursalId !== undefined) where.sucursalId = sucursalId;
+    if (req.query.sucursalId) where.sucursalId = Number(req.query.sucursalId);
+    if (req.query.socioId) where.socioId = Number(req.query.socioId);
     if (req.query.inventario === 'compra') where.estado = 'EN_COMPRA';
     else if (req.query.inventario === 'venta') where.estado = { in: ['DISPONIBLE', 'RESERVADO', 'VENDIDO'] };
     else if (req.query.estado && ESTADOS.includes(req.query.estado)) where.estado = req.query.estado;
@@ -38,14 +40,14 @@ async function listar(req, res, next) {
         { vin: { contains: req.query.buscar, mode: 'insensitive' } },
       ];
     }
-    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, venta: { select: { fecha: true } } } });
+    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, venta: { select: { fecha: true } }, socio: SOCIO_SEL } });
     res.json(lista.map((v) => vistaVehiculo(v, req.usuario.rol)));
   } catch (e) { next(e); }
 }
 
 async function obtener(req, res, next) {
   try {
-    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { createdAt: 'asc' } }, venta: { select: { fecha: true } } } });
+    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { createdAt: 'asc' } }, venta: { select: { fecha: true } }, socio: SOCIO_SEL } });
     if (!v) throw new ApiError(404, 'Vehículo no encontrado');
     res.json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }
@@ -55,6 +57,7 @@ async function crear(req, res, next) {
   try {
     const { anio, marca, modelo } = req.body;
     if (!anio || !marca || !modelo) throw new ApiError(400, 'anio, marca y modelo son obligatorios');
+    if (!req.body.socioId) throw new ApiError(400, 'El socio es obligatorio');
     const sucursalId = resolverSucursalEscritura(req, req.body.sucursalId);
     const data = { ...datosBase(req.body), sucursalId, estado: 'EN_COMPRA' };
     // Comprimir y escribir las fotos a disco ANTES de la transacción (trabajo pesado fuera de la BD).

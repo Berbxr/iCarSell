@@ -18,9 +18,14 @@ const tokenVend = firmarToken({ id: 2, rol: 'VENDEDOR', sucursalId: 2 });
 const tokenAlmacen = firmarToken({ id: 3, rol: 'ALMACEN', sucursalId: null });
 
 describe('Vehiculos', () => {
-  test('GET (VENDEDOR) filtra por su sucursal', async () => {
+  test('GET (VENDEDOR) sin filtro ve todas las sucursales', async () => {
     prisma.vehiculo.findMany.mockResolvedValue([]);
     await request(app).get('/api/vehiculos').set('Authorization', `Bearer ${tokenVend}`);
+    expect(prisma.vehiculo.findMany.mock.calls[0][0].where.sucursalId).toBeUndefined();
+  });
+  test('GET ?sucursalId filtra por esa sucursal', async () => {
+    prisma.vehiculo.findMany.mockResolvedValue([]);
+    await request(app).get('/api/vehiculos?sucursalId=2').set('Authorization', `Bearer ${tokenVend}`);
     expect(prisma.vehiculo.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ sucursalId: 2 }) }));
   });
   test('GET ?estado=DISPONIBLE agrega filtro de estado', async () => {
@@ -32,7 +37,7 @@ describe('Vehiculos', () => {
     prisma.vehiculo.create.mockResolvedValue({ id: 10, marca: 'Nissan', sucursalId: 2 });
     prisma.vehiculo.findUnique.mockResolvedValue({ id: 10, marca: 'Nissan', sucursalId: 2, fotos: [], gastos: [] });
     const res = await request(app).post('/api/vehiculos').set('Authorization', `Bearer ${tokenAlmacen}`)
-      .send({ anio: 2018, marca: 'Nissan', modelo: 'Versa', precioVenta: 150000, sucursalId: 2 });
+      .send({ anio: 2018, marca: 'Nissan', modelo: 'Versa', precioVenta: 150000, sucursalId: 2, socioId: 1 });
     expect(res.status).toBe(201);
   });
   test('POST (VENDEDOR) prohibido => 403', async () => {
