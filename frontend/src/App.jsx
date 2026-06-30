@@ -9,6 +9,7 @@ import Inventario from './pages/Inventario';
 import Clientes from './pages/Clientes';
 import Reportes from './pages/Reportes';
 import Comisiones from './pages/Comisiones';
+import Compra from './pages/Compra';
 import Empleados from './pages/Empleados';
 import Sucursales from './pages/Sucursales';
 import Usuarios from './pages/Usuarios';
@@ -18,6 +19,8 @@ import Auditoria from './pages/Auditoria';
 function Privada({ children }) { return <RequireAuth><Layout>{children}</Layout></RequireAuth>; }
 const SOLO_ADMIN = ['ADMIN'];
 const AMBOS = ['ADMIN', 'VENDEDOR'];
+const COMPRA = ['ADMIN', 'ALMACEN'];
+const INVENTARIO_VENTA = ['ADMIN', 'VENDEDOR', 'ALMACEN'];
 
 export default function App() {
   return (
@@ -26,7 +29,8 @@ export default function App() {
       <Route path="/cambiar-password" element={<RequireAuth><Layout><CambiarPassword /></Layout></RequireAuth>} />
       <Route path="/dashboard" element={<Privada><RequireRol roles={AMBOS}><Dashboard /></RequireRol></Privada>} />
       <Route path="/ventas" element={<Privada><RequireRol roles={AMBOS}><Ventas /></RequireRol></Privada>} />
-      <Route path="/inventario" element={<Privada><RequireRol roles={AMBOS}><Inventario /></RequireRol></Privada>} />
+      <Route path="/compra" element={<Privada><RequireRol roles={COMPRA}><Compra /></RequireRol></Privada>} />
+      <Route path="/inventario" element={<Privada><RequireRol roles={INVENTARIO_VENTA}><Inventario /></RequireRol></Privada>} />
       <Route path="/clientes" element={<Privada><RequireRol roles={AMBOS}><Clientes /></RequireRol></Privada>} />
       <Route path="/reportes" element={<Privada><RequireRol roles={SOLO_ADMIN}><Reportes /></RequireRol></Privada>} />
       <Route path="/comisiones" element={<Privada><RequireRol roles={SOLO_ADMIN}><Comisiones /></RequireRol></Privada>} />

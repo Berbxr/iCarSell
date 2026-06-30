@@ -5,7 +5,8 @@ const GRUPOS = [
   { label: null, items: [{ to: '/dashboard', label: 'Dashboard', roles: ['ADMIN', 'VENDEDOR'] }] },
   { label: 'Operación', items: [
     { to: '/ventas', label: 'Ventas', roles: ['ADMIN', 'VENDEDOR'] },
-    { to: '/inventario', label: 'Inventario', roles: ['ADMIN', 'VENDEDOR'] },
+    { to: '/compra', label: 'Inventario de compra', roles: ['ADMIN', 'ALMACEN'] },
+    { to: '/inventario', label: 'Inventario de venta', roles: ['ADMIN', 'VENDEDOR', 'ALMACEN'] },
     { to: '/clientes', label: 'Clientes', roles: ['ADMIN', 'VENDEDOR'] },
   ] },
   { label: 'Administración', items: [

@@ -52,6 +52,7 @@ export default function Usuarios() {
           <div><label>Rol</label>
             <select value={form.rol} onChange={(e) => set('rol', e.target.value)} style={{ maxWidth: 240 }}>
               <option value="VENDEDOR">Vendedor</option>
+              <option value="ALMACEN">Almacén</option>
               <option value="ADMIN">Administrador</option>
             </select>
           </div>
