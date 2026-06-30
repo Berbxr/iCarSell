@@ -30,19 +30,19 @@ describe('Ventas endpoints', () => {
   test('POST crea venta (VENDEDOR) => 201 con folio', async () => {
     ventasService.crearVenta.mockResolvedValue({ id: 1, folio: 'A-0602' });
     const res = await request(app).post('/api/ventas').set('Authorization', `Bearer ${tokenVend}`)
-      .send({ vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 150000 });
+      .send({ vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 150000, metodoPago: 'TRANSFERENCIA' });
     expect(res.status).toBe(201);
     expect(res.body.folio).toBe('A-0602');
-    expect(ventasService.crearVenta).toHaveBeenCalledWith(expect.objectContaining({ sucursalId: 2 }));
+    expect(ventasService.crearVenta).toHaveBeenCalledWith(expect.objectContaining({ vehiculoId: 10, metodoPago: 'TRANSFERENCIA' }));
   });
-  test('POST (ADMIN) sin sucursalId => 400', async () => {
+  test('POST (ADMIN) sin empleadoId => 400', async () => {
     const res = await request(app).post('/api/ventas').set('Authorization', `Bearer ${tokenAdmin}`)
-      .send({ vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 1 });
+      .send({ vehiculoId: 10, clienteId: 5, total: 1 });
     expect(res.status).toBe(400);
   });
   test('POST /contrato/borrador genera PDF sin registrar venta', async () => {
     prisma.sucursal.findUnique.mockResolvedValue({ id: 2, nombre: 'Santa Isabel', nombreComercial: 'EMPALME MOTORS' });
-    prisma.vehiculo.findUnique.mockResolvedValue({ id: 10, anio: 2018, marca: 'Nissan', modelo: 'Versa' });
+    prisma.vehiculo.findUnique.mockResolvedValue({ id: 10, sucursalId: 2, anio: 2018, marca: 'Nissan', modelo: 'Versa' });
     contrato.generarContratoPDF.mockResolvedValue(Buffer.from('%PDF-1.4 borrador'));
     const res = await request(app).post('/api/ventas/contrato/borrador').set('Authorization', `Bearer ${tokenVend}`)
       .send({ vehiculoId: 10, cliente: { nombre: 'Cliente Nuevo' }, total: 150000 });

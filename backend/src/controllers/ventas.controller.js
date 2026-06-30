@@ -1,6 +1,6 @@
 const prisma = require('../config/prisma');
 const { ApiError } = require('../middlewares/error');
-const { resolverSucursalLectura, resolverSucursalEscritura } = require('../utils/alcance');
+const { resolverSucursalLectura } = require('../utils/alcance');
 const { crearVenta } = require('../services/ventas.service');
 const { generarContratoPDF } = require('../services/contrato.service');
 const auditoria = require('../services/auditoria.service');
@@ -33,14 +33,13 @@ async function crear(req, res, next) {
   try {
     const { vehiculoId, clienteId, total } = req.body;
     if (!vehiculoId || !clienteId || total == null) throw new ApiError(400, 'vehiculoId, clienteId y total son obligatorios');
-    const sucursalId = resolverSucursalEscritura(req, req.body.sucursalId);
     let empleadoId = req.body.empleadoId;
     if (!empleadoId && req.usuario.rol === 'VENDEDOR') {
       const u = await prisma.usuario.findUnique({ where: { id: req.usuario.id } });
       empleadoId = u && u.empleadoId;
     }
     if (!empleadoId) throw new ApiError(400, 'empleadoId es obligatorio');
-    const venta = await crearVenta({ sucursalId, vehiculoId, clienteId, empleadoId, total, observaciones: req.body.observaciones });
+    const venta = await crearVenta({ vehiculoId, clienteId, empleadoId, total, observaciones: req.body.observaciones, metodoPago: req.body.metodoPago });
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'CREAR_VENTA', entidad: 'Venta', entidadId: venta.id, datos: { folio: venta.folio, total: venta.total }, ip: req.ip });
     res.status(201).json(venta);
   } catch (e) { next(e); }
@@ -49,10 +48,11 @@ async function crear(req, res, next) {
 // Genera un borrador del contrato (PDF) SIN registrar la venta. Folio = "BORRADOR".
 async function contratoBorrador(req, res, next) {
   try {
-    const sucursalId = resolverSucursalEscritura(req, req.body.sucursalId);
+    const vehiculo = req.body.vehiculoId ? await prisma.vehiculo.findUnique({ where: { id: Number(req.body.vehiculoId) } }) : null;
+    const sucursalId = vehiculo ? vehiculo.sucursalId : (req.body.sucursalId ? Number(req.body.sucursalId) : null);
+    if (!sucursalId) throw new ApiError(400, 'Seleccione un vehículo o una sucursal');
     const sucursal = await prisma.sucursal.findUnique({ where: { id: sucursalId } });
     if (!sucursal) throw new ApiError(404, 'Sucursal no encontrada');
-    const vehiculo = req.body.vehiculoId ? await prisma.vehiculo.findUnique({ where: { id: Number(req.body.vehiculoId) } }) : null;
     let cliente = req.body.cliente || null;
     if (!cliente && req.body.clienteId) cliente = await prisma.cliente.findUnique({ where: { id: Number(req.body.clienteId) } });
     const config = await prisma.configuracion.findUnique({ where: { id: 1 } });

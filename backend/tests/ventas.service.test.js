@@ -27,7 +27,7 @@ describe('crearVenta', () => {
     tx.sucursal.update.mockResolvedValue({ id: 2, serieFolio: 'A', consecutivoFolio: 602 });
     tx.venta.create.mockImplementation(({ data }) => Promise.resolve({ id: 1, ...data }));
 
-    const venta = await crearVenta({ sucursalId: 2, vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 150000 });
+    const venta = await crearVenta({ vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 150000 });
 
     expect(venta.folio).toBe('A-0602');
     expect(tx.sucursal.update).toHaveBeenCalledWith(expect.objectContaining({ data: { consecutivoFolio: { increment: 1 } } }));
@@ -40,18 +40,23 @@ describe('crearVenta', () => {
     tx.sucursal.update.mockResolvedValue({ id: 2, serieFolio: 'A', consecutivoFolio: 1 });
     tx.venta.create.mockImplementation(({ data }) => Promise.resolve({ id: 1, ...data }));
 
-    const venta = await crearVenta({ sucursalId: 2, vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 11000 });
+    const venta = await crearVenta({ vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 11000 });
 
     expect(venta.comision).toBe(2600); // precioVenta 12000 USD => rango 3
   });
 
-  test('rechaza vehículo de otra sucursal', async () => {
-    tx.vehiculo.findUnique.mockResolvedValue({ id: 10, sucursalId: 9, estado: 'DISPONIBLE' });
-    await expect(crearVenta({ sucursalId: 2, vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 1 })).rejects.toThrow();
+  test('guarda metodoPago y usa la sucursal del vehículo', async () => {
+    tx.vehiculo.findUnique.mockResolvedValue({ id: 10, sucursalId: 7, estado: 'DISPONIBLE', precioVenta: 9000 });
+    tx.sucursal.update.mockResolvedValue({ id: 7, serieFolio: 'B', consecutivoFolio: 3 });
+    tx.venta.create.mockImplementation(({ data }) => Promise.resolve({ id: 1, ...data }));
+    const venta = await crearVenta({ vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 9000, metodoPago: 'TRANSFERENCIA' });
+    expect(venta.sucursalId).toBe(7);
+    expect(venta.metodoPago).toBe('TRANSFERENCIA');
+    expect(tx.sucursal.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 7 } }));
   });
 
   test('rechaza vehículo ya vendido', async () => {
     tx.vehiculo.findUnique.mockResolvedValue({ id: 10, sucursalId: 2, estado: 'VENDIDO' });
-    await expect(crearVenta({ sucursalId: 2, vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 1 })).rejects.toThrow();
+    await expect(crearVenta({ vehiculoId: 10, clienteId: 5, empleadoId: 3, total: 1 })).rejects.toThrow();
   });
 });
