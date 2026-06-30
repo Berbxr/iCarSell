@@ -58,6 +58,36 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <h3 style={{ marginTop: 8 }}>Finanzas del mes</h3>
+      <div className="kpis">
+        <div className="kpi">
+          <h3>Utilidad del mes</h3>
+          <div className="valor">{money(data.utilidadMesUsd)} <span style={{ fontSize: 13, color: 'var(--muted)' }}>USD</span></div>
+          <div className="sub">{money(data.utilidadMesMxn)} MXN</div>
+        </div>
+        <div className="kpi">
+          <h3>Gastos del mes</h3>
+          <div className="valor">{money(data.gastosMes)} <span style={{ fontSize: 13, color: 'var(--muted)' }}>MXN</span></div>
+          <div className="sub">Comisiones: {money(data.comisionesMes)} MXN</div>
+        </div>
+        <div className="kpi">
+          <h3>Utilidad neta del mes</h3>
+          <div className="valor" style={{ color: data.utilidadNetaMxn >= 0 ? 'var(--ok)' : 'var(--danger)' }}>{money(data.utilidadNetaMxn)} <span style={{ fontSize: 13, color: 'var(--muted)' }}>MXN</span></div>
+          <div className="sub">Utilidad − gastos − comisiones</div>
+        </div>
+        <div className="kpi">
+          <h3>Cobro del mes</h3>
+          <div className="valor" style={{ fontSize: 18 }}>Efectivo: {money(data.efectivoMes)}</div>
+          <div className="sub">Transferencia: {money(data.transferenciaMes)}</div>
+        </div>
+      </div>
+
+      <div className="kpis">
+        {Object.entries(data.inventarioEstados || {}).map(([estado, n]) => (
+          <div className="kpi" key={estado} style={{ minWidth: 130 }}><h3>Inventario · {estado}</h3><div className="valor">{n}</div></div>
+        ))}
+      </div>
+
       <div className="dash-cols">
         <div className="card">
           <h3>Ventas de los últimos 6 meses</h3>
@@ -83,6 +113,19 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="card">
+        <h3>Ganancia por socio (este mes)</h3>
+        <table>
+          <thead><tr><th>Socio</th><th>Ganancia USD</th><th>Ganancia MXN</th></tr></thead>
+          <tbody>
+            {(data.gananciaPorSocio || []).map((s) => (
+              <tr key={s.socioId}><td>{s.nombre}</td><td>{money(s.totalUsd)}</td><td>{money(s.totalMxn)}</td></tr>
+            ))}
+            {(!data.gananciaPorSocio || data.gananciaPorSocio.length === 0) && <tr><td colSpan="3" style={{ color: 'var(--muted)' }}>Sin ventas este mes.</td></tr>}
+          </tbody>
+        </table>
       </div>
 
       <div className="card">

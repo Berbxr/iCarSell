@@ -1,6 +1,7 @@
 jest.mock('../src/config/prisma', () => ({
   venta: { findMany: jest.fn(), findFirst: jest.fn(), aggregate: jest.fn() },
-  vehiculo: { findMany: jest.fn() },
+  vehiculo: { findMany: jest.fn(), groupBy: jest.fn() },
+  gastoGeneral: { findMany: jest.fn() },
   configuracion: { findUnique: jest.fn() },
 }));
 const request = require('supertest');
@@ -14,11 +15,16 @@ const tokenVend = firmarToken({ id: 2, rol: 'VENDEDOR', sucursalId: 2 });
 
 describe('Dashboard', () => {
   test('GET /api/dashboard (ADMIN con ?sucursalId) responde KPIs y filtra por sucursal', async () => {
-    prisma.configuracion.findUnique.mockResolvedValue({ diasAntiguedadAlerta: 60 });
+    prisma.configuracion.findUnique.mockResolvedValue({ diasAntiguedadAlerta: 60, tipoCambioDolar: 20 });
     prisma.venta.findMany.mockResolvedValue([
-      { total: 100, fecha: new Date(), empleado: { id: 3, nombre: 'Ana', apellidos: 'Pérez' } },
-      { total: 250, fecha: new Date(), empleado: { id: 3, nombre: 'Ana', apellidos: 'Pérez' } },
-      { total: 80, fecha: new Date(), empleado: { id: 4, nombre: 'Luis', apellidos: 'Gómez' } },
+      { total: 100, comision: 0, metodoPago: 'EFECTIVO', fecha: new Date(), empleado: { id: 3, nombre: 'Ana', apellidos: 'Pérez' } },
+      { total: 250, comision: 0, metodoPago: 'EFECTIVO', fecha: new Date(), empleado: { id: 3, nombre: 'Ana', apellidos: 'Pérez' } },
+      { total: 80, comision: 0, metodoPago: 'TRANSFERENCIA', fecha: new Date(), empleado: { id: 4, nombre: 'Luis', apellidos: 'Gómez' } },
+    ]);
+    prisma.gastoGeneral.findMany.mockResolvedValue([{ monto: 1500 }]);
+    prisma.vehiculo.groupBy.mockResolvedValue([
+      { estado: 'EN_COMPRA', _count: { _all: 2 } },
+      { estado: 'DISPONIBLE', _count: { _all: 5 } },
     ]);
     prisma.venta.findFirst.mockResolvedValue({
       id: 9, folio: 'A-0009', total: 80, fecha: new Date(),
@@ -45,6 +51,15 @@ describe('Dashboard', () => {
     // Último auto vendido
     expect(res.body.ultimaVenta).toMatchObject({ folio: 'A-0009' });
     expect(res.body.ultimaVenta.vehiculo).toMatchObject({ marca: 'Mazda', modelo: '3' });
+
+    // KPIs financieros nuevos
+    expect(res.body).toHaveProperty('tipoCambio', 20);
+    expect(res.body).toHaveProperty('utilidadMesUsd');
+    expect(res.body).toHaveProperty('utilidadNetaMxn');
+    expect(res.body.gastosMes).toBe(1500);
+    expect(res.body.efectivoMes).toBe(350); // 100 + 250
+    expect(res.body.transferenciaMes).toBe(80);
+    expect(res.body.inventarioEstados).toMatchObject({ EN_COMPRA: 2, DISPONIBLE: 5 });
   });
 
   test('GET /api/dashboard con VENDEDOR => 403 (no ve ventas)', async () => {

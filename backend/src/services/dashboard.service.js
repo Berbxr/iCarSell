@@ -1,4 +1,6 @@
 const prisma = require('../config/prisma');
+const { costoTotal } = require('../utils/costos');
+const { usdAMxn } = require('../utils/cambio');
 
 function inicioSemana(d = new Date()) {
   const x = new Date(d); const dia = (x.getDay() + 6) % 7; // lunes=0
@@ -74,7 +76,52 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
     vehiculo: ult.vehiculo, cliente: ult.cliente, empleado: ult.empleado,
   } : null;
 
-  return { ventasSemana: acum(semDesde), ventasMes: acum(mesDesde), ventas6Meses: meses, antiguedad, ventasPorEmpleado, ultimaVenta };
+  // KPIs financieros del mes (solo se muestran al ADMIN, que es quien consulta este endpoint).
+  const config = await prisma.configuracion.findUnique({ where: { id: 1 } });
+  const tipoCambio = config ? config.tipoCambioDolar || 0 : 0;
+
+  const ventasMesDetalle = await prisma.venta.findMany({
+    where: { ...whereSuc, fecha: { gte: mesDesde } },
+    include: { vehiculo: { include: { gastos: true, socio: { select: { id: true, nombre: true } } } } },
+  });
+
+  let utilidadMesUsd = 0;
+  let comisionesMes = 0;
+  let efectivoMes = 0;
+  let transferenciaMes = 0;
+  const socioMap = new Map();
+  for (const v of ventasMesDetalle) {
+    const util = v.vehiculo ? (v.vehiculo.precioVenta - costoTotal(v.vehiculo)) : 0;
+    utilidadMesUsd += util;
+    comisionesMes += v.comision || 0;
+    if (v.metodoPago === 'EFECTIVO') efectivoMes += v.total;
+    else if (v.metodoPago === 'TRANSFERENCIA') transferenciaMes += v.total;
+    const socio = v.vehiculo && v.vehiculo.socio;
+    if (socio) {
+      const g = socioMap.get(socio.id) || { socioId: socio.id, nombre: socio.nombre, totalUsd: 0 };
+      g.totalUsd += util;
+      socioMap.set(socio.id, g);
+    }
+  }
+  const utilidadMesMxn = usdAMxn(utilidadMesUsd, tipoCambio);
+
+  const gastosMesLista = await prisma.gastoGeneral.findMany({ where: { ...whereSuc, fecha: { gte: mesDesde } } });
+  const gastosMes = gastosMesLista.reduce((a, g) => a + g.monto, 0);
+  const utilidadNetaMxn = utilidadMesMxn - gastosMes - comisionesMes;
+
+  const gananciaPorSocio = [...socioMap.values()]
+    .map((s) => ({ ...s, totalMxn: usdAMxn(s.totalUsd, tipoCambio) }))
+    .sort((a, b) => b.totalUsd - a.totalUsd)
+    .slice(0, 5);
+
+  const grupos = await prisma.vehiculo.groupBy({ by: ['estado'], where: whereSuc, _count: { _all: true } });
+  const inventarioEstados = grupos.reduce((a, g) => { a[g.estado] = g._count._all; return a; }, {});
+
+  return {
+    ventasSemana: acum(semDesde), ventasMes: acum(mesDesde), ventas6Meses: meses, antiguedad, ventasPorEmpleado, ultimaVenta,
+    tipoCambio, utilidadMesUsd, utilidadMesMxn, gastosMes, comisionesMes, utilidadNetaMxn,
+    efectivoMes, transferenciaMes, gananciaPorSocio, inventarioEstados,
+  };
 }
 
 module.exports = { kpis };
