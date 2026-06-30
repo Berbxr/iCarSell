@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 
 export default function Configuracion() {
-  const [form, setForm] = useState({ diasAntiguedadAlerta: 60, terminosContrato: '' });
+  const [form, setForm] = useState({ diasAntiguedadAlerta: 60, terminosContrato: '', tipoCambioDolar: 0 });
   const [error, setError] = useState('');
   const [ok, setOk] = useState(false);
   const [rangos, setRangos] = useState([]);
   const [okRangos, setOkRangos] = useState(false);
   const [errRangos, setErrRangos] = useState('');
 
-  useEffect(() => { api.get('/configuracion').then((r) => setForm({ diasAntiguedadAlerta: r.data.diasAntiguedadAlerta, terminosContrato: r.data.terminosContrato || '' })); }, []);
+  useEffect(() => { api.get('/configuracion').then((r) => setForm({ diasAntiguedadAlerta: r.data.diasAntiguedadAlerta, terminosContrato: r.data.terminosContrato || '', tipoCambioDolar: r.data.tipoCambioDolar || 0 })); }, []);
   useEffect(() => { api.get('/configuracion/comisiones').then((r) => setRangos(r.data.map((x) => ({ desdeUsd: x.desdeUsd, monto: x.monto })))); }, []);
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
@@ -17,7 +17,7 @@ export default function Configuracion() {
   async function guardar(e) {
     e.preventDefault(); setError(''); setOk(false);
     try {
-      await api.put('/configuracion', { diasAntiguedadAlerta: Number(form.diasAntiguedadAlerta), terminosContrato: form.terminosContrato });
+      await api.put('/configuracion', { diasAntiguedadAlerta: Number(form.diasAntiguedadAlerta), terminosContrato: form.terminosContrato, tipoCambioDolar: Number(form.tipoCambioDolar) });
       setOk(true);
     } catch (err) { setError(err.response?.data?.error || 'Error al guardar'); }
   }
@@ -41,6 +41,11 @@ export default function Configuracion() {
       <h1>Configuración</h1>
       <div className="card">
         <form onSubmit={guardar} className="grid" style={{ maxWidth: 640 }}>
+          <div>
+            <label>Tipo de cambio del dólar (MXN por USD)</label>
+            <input type="number" step="0.01" min="0" value={form.tipoCambioDolar} onChange={(e) => set('tipoCambioDolar', e.target.value)} style={{ maxWidth: 160 }} />
+            <p style={{ color: 'var(--muted)', fontSize: 13 }}>Se usa para convertir las ganancias en dólares a pesos y se muestra en el encabezado.</p>
+          </div>
           <div>
             <label>Días de antigüedad para alerta de inventario</label>
             <input type="number" min="1" value={form.diasAntiguedadAlerta} onChange={(e) => set('diasAntiguedadAlerta', e.target.value)} style={{ maxWidth: 160 }} />

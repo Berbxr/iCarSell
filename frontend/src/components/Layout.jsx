@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../api/client';
 
 const GRUPOS = [
   { label: null, items: [{ to: '/dashboard', label: 'Dashboard', roles: ['ADMIN', 'VENDEDOR'] }] },
@@ -12,6 +14,8 @@ const GRUPOS = [
   { label: 'Administración', items: [
     { to: '/reportes', label: 'Reportes', roles: ['ADMIN'] },
     { to: '/comisiones', label: 'Comisiones', roles: ['ADMIN'] },
+    { to: '/socios', label: 'Socios', roles: ['ADMIN'] },
+    { to: '/gastos', label: 'Gastos', roles: ['ADMIN'] },
     { to: '/empleados', label: 'Empleados', roles: ['ADMIN'] },
     { to: '/sucursales', label: 'Sucursales', roles: ['ADMIN'] },
     { to: '/usuarios', label: 'Usuarios', roles: ['ADMIN'] },
@@ -27,6 +31,8 @@ export default function Layout({ children }) {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
   const rol = usuario?.rol;
+  const [tc, setTc] = useState(null);
+  useEffect(() => { api.get('/configuracion').then((r) => setTc(r.data.tipoCambioDolar)).catch(() => {}); }, []);
 
   function salir() { logout(); navigate('/login'); }
 
@@ -57,6 +63,10 @@ export default function Layout({ children }) {
         </div>
       </aside>
       <div className="main">
+        <div className="topbar">
+          <div />
+          <div className="tc-header">Dólar: {tc ? `$${Number(tc).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN` : 'sin configurar'}</div>
+        </div>
         <div className="content">{children}</div>
       </div>
     </div>
