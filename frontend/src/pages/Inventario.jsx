@@ -72,7 +72,7 @@ export default function Inventario() {
             {!esVendedor && <td>{v.utilidad != null ? `$${Number(v.utilidad).toLocaleString('es-MX')}` : '—'}</td>}
             <td className="row">
               {v.estado !== 'VENDIDO' && (
-                <select className="btn-sm" value={v.estado} onChange={(e) => cambiarEstado(v, e.target.value)}>
+                <select className="btn-sm" value={v.estado} onChange={(e) => cambiarEstado(v, e.target.value)} style={{ width: 'auto', minWidth: 110 }}>
                   <option value="DISPONIBLE">Disponible</option>
                   <option value="RESERVADO">Reservado</option>
                 </select>
