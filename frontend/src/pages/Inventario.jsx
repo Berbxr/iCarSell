@@ -51,7 +51,7 @@ export default function Inventario() {
           <option value="RESERVADO">Reservado</option>
           <option value="VENDIDO">Vendido</option>
         </select>
-        {usuario.rol === 'ADMIN' && <SelectorSucursal value={filtros.sucursalId} onChange={(v) => setFiltros((f) => ({ ...f, sucursalId: v }))} incluirTodas />}
+        <SelectorSucursal value={filtros.sucursalId} onChange={(v) => setFiltros((f) => ({ ...f, sucursalId: v }))} incluirTodas />
       </div>
 
       <table>

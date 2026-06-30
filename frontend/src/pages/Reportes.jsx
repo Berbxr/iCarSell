@@ -8,6 +8,7 @@ export default function Reportes() {
   const [hasta, setHasta] = useState('');
   const [ventas, setVentas] = useState(null);
   const [inventario, setInventario] = useState(null);
+  const [socios, setSocios] = useState(null);
 
   function params() {
     const p = new URLSearchParams();
@@ -18,11 +19,12 @@ export default function Reportes() {
   }
 
   async function cargar() {
-    const [v, i] = await Promise.all([
+    const [v, i, s] = await Promise.all([
       api.get(`/reportes/ventas?${params()}`),
       api.get(`/reportes/inventario?${sucursalId ? `sucursalId=${sucursalId}` : ''}`),
+      api.get(`/reportes/socios?${params()}`),
     ]);
-    setVentas(v.data); setInventario(i.data);
+    setVentas(v.data); setInventario(i.data); setSocios(s.data);
   }
   useEffect(() => { cargar(); }, [sucursalId, desde, hasta]);
 
@@ -67,13 +69,15 @@ export default function Reportes() {
             {ventas.totales.comision !== undefined && (
               <div className="kpi"><h3>Comisiones</h3><div className="valor">${ventas.totales.comision.toLocaleString('es-MX')}</div></div>
             )}
+            {ventas.totales.efectivo !== undefined && <div className="kpi"><h3>Efectivo</h3><div className="valor">${ventas.totales.efectivo.toLocaleString('es-MX')}</div></div>}
+            {ventas.totales.transferencia !== undefined && <div className="kpi"><h3>Transferencia</h3><div className="valor">${ventas.totales.transferencia.toLocaleString('es-MX')}</div></div>}
           </div>
           <div className="row" style={{ marginBottom: 10 }}>
             <h2 style={{ flex: 1 }}>Ventas</h2>
             <button className="btn btn-sm" onClick={exportarCSV}>Exportar CSV</button>
           </div>
           <table>
-            <thead><tr><th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Utilidad</th><th>Comisión</th></tr></thead>
+            <thead><tr><th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Utilidad</th><th>Comisión</th><th>Pago</th></tr></thead>
             <tbody>{ventas.ventas.map((v) => (
               <tr key={v.id}>
                 <td>{v.folio}</td><td>{new Date(v.fecha).toLocaleDateString('es-MX')}</td>
@@ -83,9 +87,41 @@ export default function Reportes() {
                 <td>${Number(v.total).toLocaleString('es-MX')}</td>
                 <td>${utilidadVeh(v).toLocaleString('es-MX')}</td>
                 <td>{v.comision !== undefined ? `$${Number(v.comision).toLocaleString('es-MX')}` : '—'}</td>
+                <td>{v.metodoPago || '—'}</td>
               </tr>
             ))}</tbody>
           </table>
+        </>
+      )}
+
+      {socios && (
+        <>
+          <h2 style={{ marginTop: 24 }}>Ganancias por socio</h2>
+          <div className="kpis">
+            <div className="kpi"><h3>Total USD</h3><div className="valor">${socios.totalGeneralUsd.toLocaleString('es-MX')}</div></div>
+            <div className="kpi"><h3>Total MXN</h3><div className="valor">${socios.totalGeneralMxn.toLocaleString('es-MX')}</div></div>
+          </div>
+          <table>
+            <thead><tr><th>Socio</th><th>Autos vendidos</th><th>Ganancia USD</th><th>Ganancia MXN</th></tr></thead>
+            <tbody>{socios.socios.map((s) => (
+              <tr key={s.socioId}>
+                <td>{s.nombre}</td><td>{s.cantidad}</td>
+                <td>${s.totalUsd.toLocaleString('es-MX')}</td>
+                <td>${s.totalMxn.toLocaleString('es-MX')}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+          {socios.porMes.length > 0 && (
+            <>
+              <h3 style={{ marginTop: 16 }}>Por mes (general)</h3>
+              <table>
+                <thead><tr><th>Mes</th><th>Ganancia USD</th><th>Ganancia MXN</th></tr></thead>
+                <tbody>{socios.porMes.map((m) => (
+                  <tr key={m.mes}><td>{m.mes}</td><td>${m.utilidadUsd.toLocaleString('es-MX')}</td><td>${m.utilidadMxn.toLocaleString('es-MX')}</td></tr>
+                ))}</tbody>
+              </table>
+            </>
+          )}
         </>
       )}
 

@@ -22,6 +22,7 @@ export default function Ventas() {
   const [cliente, setCliente] = useState(CLIENTE_VACIO);
   const [total, setTotal] = useState('');
   const [observaciones, setObservaciones] = useState('SIN GARANTÍA');
+  const [metodoPago, setMetodoPago] = useState('EFECTIVO');
   const [error, setError] = useState('');
 
   async function cargarVentas() { const { data } = await api.get('/ventas'); setVentas(data); }
@@ -45,7 +46,7 @@ export default function Ventas() {
 
   function reset() {
     setMostrarForm(false); setVehiculoId(''); setClienteId(''); setNuevoCliente(false);
-    setCliente(CLIENTE_VACIO); setTotal(''); setObservaciones('SIN GARANTÍA'); setEmpleadoId(''); setError('');
+    setCliente(CLIENTE_VACIO); setTotal(''); setObservaciones('SIN GARANTÍA'); setMetodoPago('EFECTIVO'); setEmpleadoId(''); setError('');
   }
 
   async function registrar(e) {
@@ -57,8 +58,8 @@ export default function Ventas() {
         cid = data.id;
       }
       if (!cid) throw new Error('Selecciona o crea un cliente');
-      const payload = { vehiculoId: Number(vehiculoId), clienteId: Number(cid), total: Number(total), observaciones };
-      if (usuario.rol === 'ADMIN') { payload.sucursalId = sucursalId; payload.empleadoId = Number(empleadoId); }
+      const payload = { vehiculoId: Number(vehiculoId), clienteId: Number(cid), total: Number(total), observaciones, metodoPago };
+      if (usuario.rol === 'ADMIN') { payload.empleadoId = Number(empleadoId); }
       const { data: venta } = await api.post('/ventas', payload);
       reset(); cargarVentas();
       if (window.confirm(`Venta ${venta.folio} registrada. ¿Abrir el contrato PDF?`)) verContrato(venta.id);
@@ -76,9 +77,7 @@ export default function Ventas() {
     setError('');
     try {
       if (!vehiculoId) throw new Error('Selecciona un vehículo para ver el borrador');
-      if (usuario.rol === 'ADMIN' && !sucursalId) throw new Error('Selecciona una sucursal');
       const payload = { vehiculoId: Number(vehiculoId), total: Number(total) || 0, observaciones };
-      if (usuario.rol === 'ADMIN') payload.sucursalId = sucursalId;
       if (nuevoCliente) payload.cliente = cliente;
       else if (clienteId) payload.clienteId = Number(clienteId);
       const { data } = await api.post('/ventas/contrato/borrador', payload, { responseType: 'blob' });
@@ -100,9 +99,7 @@ export default function Ventas() {
         <div className="card">
           <h3>Nueva venta</h3>
           <form onSubmit={registrar} className="grid" style={{ maxWidth: 640 }}>
-            {usuario.rol === 'ADMIN' && (
-              <div><label>Sucursal</label><SelectorSucursal value={sucursalId} onChange={setSucursalId} /></div>
-            )}
+            <div><label>Sucursal (filtro)</label><SelectorSucursal value={sucursalId} onChange={setSucursalId} incluirTodas /></div>
             <div><label>Vehículo disponible</label>
               <select value={vehiculoId} onChange={(e) => elegirVehiculo(e.target.value)} required>
                 <option value="">Seleccione un vehículo…</option>
@@ -151,6 +148,12 @@ export default function Ventas() {
 
             <div className="row">
               <div style={{ flex: 1 }}><label>Total</label><input type="number" value={total} onChange={(e) => setTotal(e.target.value)} required /></div>
+              <div style={{ flex: 1 }}><label>Método de pago</label>
+                <select value={metodoPago} onChange={(e) => setMetodoPago(e.target.value)}>
+                  <option value="EFECTIVO">Efectivo</option>
+                  <option value="TRANSFERENCIA">Transferencia</option>
+                </select>
+              </div>
               <div style={{ flex: 2 }}><label>Observaciones</label><input value={observaciones} onChange={(e) => setObservaciones(e.target.value)} /></div>
             </div>
             {error && <p className="error">{error}</p>}

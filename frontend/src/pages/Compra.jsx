@@ -8,7 +8,7 @@ const VACIO = {
   anio: '', marca: '', modelo: '', color: '', vin: '', placa: '', kilometraje: '',
   transmision: '', combustible: '',
   precioCompra: '', comisionProveedor: '', transporte: '', registroPlacas: '', salidas: '',
-  precioVenta: '', notas: '', sucursalId: undefined, fotos: [],
+  precioVenta: '', notas: '', sucursalId: undefined, socioId: '', fotos: [],
 };
 
 const urlFoto = (d) => (!d || d.startsWith('data:') || d.startsWith('/api/uploads/')) ? d : `/api/uploads/${d}`;
@@ -23,12 +23,19 @@ export default function Compra() {
   const [nuevoGasto, setNuevoGasto] = useState({ descripcion: '', monto: '' });
   const [mostrarForm, setMostrarForm] = useState(false);
   const [error, setError] = useState('');
+  const [socios, setSocios] = useState([]);
+  const [filtroSocio, setFiltroSocio] = useState('');
+
+  useEffect(() => { api.get('/socios').then((r) => setSocios(r.data)).catch(() => {}); }, []);
 
   async function cargar() {
-    const { data } = await api.get('/vehiculos?inventario=compra');
+    const p = new URLSearchParams();
+    p.set('inventario', 'compra');
+    if (filtroSocio) p.set('socioId', filtroSocio);
+    const { data } = await api.get(`/vehiculos?${p.toString()}`);
     setLista(data);
   }
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); }, [filtroSocio]);
 
   // Si llega ?editar=<id> (desde el inventario de venta), abrir esa ficha.
   useEffect(() => {
@@ -94,6 +101,10 @@ export default function Compra() {
       <h1>Inventario de compra</h1>
       <div className="row" style={{ marginBottom: 14 }}>
         <button className="btn btn-primary" onClick={nuevo}>+ Registrar auto</button>
+        <select value={filtroSocio} onChange={(e) => setFiltroSocio(e.target.value)} style={{ maxWidth: 200 }}>
+          <option value="">Todos los socios</option>
+          {socios.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+        </select>
       </div>
 
       {mostrarForm && (
@@ -111,6 +122,12 @@ export default function Compra() {
               <div style={{ flex: 1 }}><label>Placa</label><input value={form.placa || ''} onChange={(e) => set('placa', e.target.value)} /></div>
               <div style={{ flex: 1 }}><label>Kilometraje</label><input type="number" value={form.kilometraje || ''} onChange={(e) => set('kilometraje', e.target.value)} /></div>
               <div style={{ flex: 1 }}><label>Sucursal</label><SelectorSucursal value={form.sucursalId} onChange={(v) => set('sucursalId', v)} /></div>
+              <div style={{ flex: 1 }}><label>Socio</label>
+                <select value={form.socioId || ''} onChange={(e) => set('socioId', e.target.value)} required>
+                  <option value="">Seleccione socio…</option>
+                  {socios.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                </select>
+              </div>
             </div>
 
             <h4>Costos (USD)</h4>
@@ -163,11 +180,12 @@ export default function Compra() {
       )}
 
       <table>
-        <thead><tr><th>Vehículo</th><th>Sucursal</th><th>Precio venta</th><th>Costo total</th><th>Utilidad</th><th>Días en compra</th><th></th></tr></thead>
+        <thead><tr><th>Vehículo</th><th>Sucursal</th><th>Socio</th><th>Precio venta</th><th>Costo total</th><th>Utilidad</th><th>Días en compra</th><th></th></tr></thead>
         <tbody>{lista.map((v) => (
           <tr key={v.id}>
             <td>{v.anio} {v.marca} {v.modelo}</td>
             <td>{v.sucursal?.nombre}</td>
+            <td>{v.socio?.nombre}</td>
             <td>${num(v.precioVenta).toLocaleString('es-MX')}</td>
             <td>{v.costoTotal != null ? `$${Number(v.costoTotal).toLocaleString('es-MX')}` : '—'}</td>
             <td>{v.utilidad != null ? `$${Number(v.utilidad).toLocaleString('es-MX')}` : '—'}</td>
