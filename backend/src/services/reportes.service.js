@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { rangoSemana } = require('../utils/semana');
+const { costoTotal } = require('../utils/costos');
 
 async function ventas({ sucursalId, desde, hasta, esAdmin }) {
   const where = {};
@@ -11,17 +12,26 @@ async function ventas({ sucursalId, desde, hasta, esAdmin }) {
   }
   const lista = await prisma.venta.findMany({
     where, orderBy: { fecha: 'desc' },
-    include: { vehiculo: true, cliente: { select: { nombre: true } }, empleado: { select: { nombre: true, apellidos: true } }, sucursal: { select: { nombre: true } } },
+    include: { vehiculo: { include: { gastos: true } }, cliente: { select: { nombre: true } }, empleado: { select: { nombre: true, apellidos: true } }, sucursal: { select: { nombre: true } } },
   });
   const totales = lista.reduce((a, v) => ({
     monto: a.monto + v.total,
     cantidad: a.cantidad + 1,
-    utilidad: a.utilidad + (v.vehiculo ? v.vehiculo.precioVenta - v.vehiculo.costoCompra : 0),
+    utilidad: a.utilidad + (v.vehiculo ? v.vehiculo.precioVenta - costoTotal(v.vehiculo) : 0),
     comision: a.comision + (v.comision || 0),
   }), { monto: 0, cantidad: 0, utilidad: 0, comision: 0 });
 
   if (!esAdmin) {
-    const sinComision = lista.map(({ comision, ...resto }) => resto);
+    const CAMPOS_COSTO = ['precioCompra', 'comisionProveedor', 'transporte', 'registroPlacas', 'salidas'];
+    const sinComision = lista.map(({ comision, vehiculo, ...resto }) => {
+      let veh = vehiculo;
+      if (veh) {
+        veh = { ...veh };
+        for (const k of CAMPOS_COSTO) delete veh[k];
+        delete veh.gastos;
+      }
+      return { ...resto, vehiculo: veh };
+    });
     const { comision, ...totalesSinComision } = totales;
     return { ventas: sinComision, totales: totalesSinComision };
   }

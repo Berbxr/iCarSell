@@ -2,17 +2,21 @@ const prisma = require('../config/prisma');
 const { ApiError } = require('../middlewares/error');
 const { resolverSucursalLectura, resolverSucursalEscritura } = require('../utils/alcance');
 const { procesarEntradas, eliminarArchivo } = require('../utils/fotosVehiculo');
+const { vistaVehiculo } = require('../utils/costos');
 const auditoria = require('../services/auditoria.service');
 
-const ESTADOS = ['DISPONIBLE', 'RESERVADO', 'VENDIDO'];
+const ESTADOS = ['EN_COMPRA', 'DISPONIBLE', 'RESERVADO', 'VENDIDO'];
 const CAMPOS = ['marca', 'modelo', 'color', 'vin', 'placa', 'notas'];
+const INCLUDE_DETALLE = { fotos: { orderBy: { orden: 'asc' } }, gastos: true, venta: { select: { fecha: true } } };
 
 function datosBase(body) {
   const data = {};
   for (const k of CAMPOS) if (body[k] !== undefined) data[k] = body[k];
   if (body.anio !== undefined) data.anio = Number(body.anio);
   if (body.kilometraje !== undefined) data.kilometraje = body.kilometraje === '' || body.kilometraje == null ? null : Number(body.kilometraje);
-  if (body.costoCompra !== undefined) data.costoCompra = Number(body.costoCompra) || 0;
+  for (const k of ['precioCompra', 'comisionProveedor', 'transporte', 'registroPlacas', 'salidas']) {
+    if (body[k] !== undefined) data[k] = Number(body[k]) || 0;
+  }
   if (body.precioVenta !== undefined) data.precioVenta = Number(body.precioVenta) || 0;
   if (body.transmision !== undefined) data.transmision = body.transmision || null;
   if (body.combustible !== undefined) data.combustible = body.combustible || null;
@@ -24,7 +28,9 @@ async function listar(req, res, next) {
     const where = {};
     const sucursalId = resolverSucursalLectura(req);
     if (sucursalId !== undefined) where.sucursalId = sucursalId;
-    if (req.query.estado && ESTADOS.includes(req.query.estado)) where.estado = req.query.estado;
+    if (req.query.inventario === 'compra') where.estado = 'EN_COMPRA';
+    else if (req.query.inventario === 'venta') where.estado = { in: ['DISPONIBLE', 'RESERVADO', 'VENDIDO'] };
+    else if (req.query.estado && ESTADOS.includes(req.query.estado)) where.estado = req.query.estado;
     if (req.query.buscar) {
       where.OR = [
         { marca: { contains: req.query.buscar, mode: 'insensitive' } },
@@ -32,15 +38,16 @@ async function listar(req, res, next) {
         { vin: { contains: req.query.buscar, mode: 'insensitive' } },
       ];
     }
-    res.json(await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 } } }));
+    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, venta: { select: { fecha: true } } } });
+    res.json(lista.map((v) => vistaVehiculo(v, req.usuario.rol)));
   } catch (e) { next(e); }
 }
 
 async function obtener(req, res, next) {
   try {
-    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true } });
+    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { createdAt: 'asc' } }, venta: { select: { fecha: true } } } });
     if (!v) throw new ApiError(404, 'Vehículo no encontrado');
-    res.json(v);
+    res.json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }
 }
 
@@ -49,16 +56,16 @@ async function crear(req, res, next) {
     const { anio, marca, modelo } = req.body;
     if (!anio || !marca || !modelo) throw new ApiError(400, 'anio, marca y modelo son obligatorios');
     const sucursalId = resolverSucursalEscritura(req, req.body.sucursalId);
-    const data = { ...datosBase(req.body), sucursalId };
+    const data = { ...datosBase(req.body), sucursalId, estado: 'EN_COMPRA' };
     // Comprimir y escribir las fotos a disco ANTES de la transacción (trabajo pesado fuera de la BD).
     const rutas = Array.isArray(req.body.fotos) ? await procesarEntradas(req.body.fotos) : [];
     const v = await prisma.$transaction(async (tx) => {
       const creado = await tx.vehiculo.create({ data });
       if (rutas.length) await tx.vehiculoFoto.createMany({ data: rutas.map((d, i) => ({ vehiculoId: creado.id, data: d, orden: i })) });
-      return tx.vehiculo.findUnique({ where: { id: creado.id }, include: { fotos: { orderBy: { orden: 'asc' } } } });
+      return tx.vehiculo.findUnique({ where: { id: creado.id }, include: INCLUDE_DETALLE });
     });
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'CREAR_VEHICULO', entidad: 'Vehiculo', entidadId: v.id, datos: { marca, modelo, anio }, ip: req.ip });
-    res.status(201).json(v);
+    res.status(201).json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }
 }
 
@@ -82,13 +89,13 @@ async function actualizar(req, res, next) {
         await tx.vehiculoFoto.deleteMany({ where: { vehiculoId: id } });
         if (rutas.length) await tx.vehiculoFoto.createMany({ data: rutas.map((d, i) => ({ vehiculoId: id, data: d, orden: i })) });
       }
-      return tx.vehiculo.findUnique({ where: { id }, include: { fotos: { orderBy: { orden: 'asc' } } } });
+      return tx.vehiculo.findUnique({ where: { id }, include: INCLUDE_DETALLE });
     });
     // Eliminar de disco las fotos quitadas (tras confirmar el commit).
     aBorrar.forEach(eliminarArchivo);
 
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'EDITAR_VEHICULO', entidad: 'Vehiculo', entidadId: id, ip: req.ip });
-    res.json(v);
+    res.json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }
 }
 
@@ -103,4 +110,40 @@ async function cambiarEstado(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { listar, obtener, crear, actualizar, cambiarEstado };
+async function agregarGasto(req, res, next) {
+  try {
+    const vehiculoId = Number(req.params.id);
+    const { descripcion, monto } = req.body;
+    if (!descripcion || !String(descripcion).trim() || monto == null || !Number.isFinite(Number(monto))) {
+      throw new ApiError(400, 'descripcion y monto son obligatorios');
+    }
+    const gasto = await prisma.gastoVehiculo.create({ data: { vehiculoId, descripcion: String(descripcion).trim(), monto: Number(monto) } });
+    await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'AGREGAR_GASTO_VEHICULO', entidad: 'GastoVehiculo', entidadId: gasto.id, datos: { vehiculoId, monto: gasto.monto }, ip: req.ip });
+    res.status(201).json(gasto);
+  } catch (e) { next(e); }
+}
+
+async function eliminarGasto(req, res, next) {
+  try {
+    const gastoId = Number(req.params.gastoId);
+    await prisma.gastoVehiculo.delete({ where: { id: gastoId } });
+    await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'ELIMINAR_GASTO_VEHICULO', entidad: 'GastoVehiculo', entidadId: gastoId, ip: req.ip });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+}
+
+async function pasarAVenta(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const actual = await prisma.vehiculo.findUnique({ where: { id } });
+    if (!actual) throw new ApiError(404, 'Vehículo no encontrado');
+    if (!(Number(actual.precioVenta) > 0)) throw new ApiError(400, 'Debe capturar un precio de venta mayor a 0 antes de pasar a venta');
+    if (actual.estado !== 'EN_COMPRA') throw new ApiError(409, 'El vehículo no está en el inventario de compra');
+    await prisma.vehiculo.update({ where: { id }, data: { estado: 'DISPONIBLE', fechaPaseAVenta: new Date() } });
+    const v = await prisma.vehiculo.findUnique({ where: { id }, include: { gastos: true, venta: { select: { fecha: true } } } });
+    await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'PASAR_A_VENTA', entidad: 'Vehiculo', entidadId: id, ip: req.ip });
+    res.json(vistaVehiculo(v, req.usuario.rol));
+  } catch (e) { next(e); }
+}
+
+module.exports = { listar, obtener, crear, actualizar, cambiarEstado, agregarGasto, eliminarGasto, pasarAVenta };

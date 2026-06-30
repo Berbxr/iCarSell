@@ -13,14 +13,34 @@ const tokenAdmin = firmarToken({ id: 1, rol: 'ADMIN', sucursalId: null });
 describe('Reportes', () => {
   test('GET /api/reportes/ventas calcula utilidad', async () => {
     prisma.venta.findMany.mockResolvedValue([
-      { id: 1, total: 150000, fecha: new Date(), vehiculo: { costoCompra: 100000, precioVenta: 150000 }, cliente: { nombre: 'Luis' }, empleado: { nombre: 'Ana' } },
-      { id: 2, total: 80000, fecha: new Date(), vehiculo: { costoCompra: 60000, precioVenta: 80000 }, cliente: { nombre: 'Pedro' }, empleado: { nombre: 'Ana' } },
+      { id: 1, total: 150000, comision: 0, fecha: new Date(), vehiculo: { precioCompra: 100000, comisionProveedor: 0, transporte: 0, registroPlacas: 0, salidas: 0, gastos: [], precioVenta: 150000 }, cliente: { nombre: 'Luis' }, empleado: { nombre: 'Ana' } },
+      { id: 2, total: 80000, comision: 0, fecha: new Date(), vehiculo: { precioCompra: 60000, comisionProveedor: 0, transporte: 0, registroPlacas: 0, salidas: 0, gastos: [{ monto: 5000 }], precioVenta: 80000 }, cliente: { nombre: 'Pedro' }, empleado: { nombre: 'Ana' } },
     ]);
     const res = await request(app).get('/api/reportes/ventas').set('Authorization', `Bearer ${tokenAdmin}`);
     expect(res.status).toBe(200);
     expect(res.body.totales.monto).toBe(230000);
     expect(res.body.totales.cantidad).toBe(2);
-    expect(res.body.totales.utilidad).toBe(70000); // (150k-100k)+(80k-60k)
+    expect(res.body.totales.utilidad).toBe(65000); // (150k-100k)+(80k-65k)
+  });
+  test('GET /api/reportes/ventas suma comisiones para ADMIN', async () => {
+    prisma.venta.findMany.mockResolvedValue([
+      { id: 1, total: 150000, comision: 2600, fecha: new Date(), vehiculo: { costoCompra: 100000, precioVenta: 150000 }, cliente: { nombre: 'Luis' }, empleado: { nombre: 'Ana' } },
+      { id: 2, total: 80000, comision: 1000, fecha: new Date(), vehiculo: { costoCompra: 60000, precioVenta: 80000 }, cliente: { nombre: 'Pedro' }, empleado: { nombre: 'Ana' } },
+    ]);
+    const res = await request(app).get('/api/reportes/ventas').set('Authorization', `Bearer ${tokenAdmin}`);
+    expect(res.status).toBe(200);
+    expect(res.body.totales.comision).toBe(3600);
+    expect(res.body.ventas[0].comision).toBe(2600);
+  });
+  test('GET /api/reportes/ventas oculta comisiones a VENDEDOR', async () => {
+    const tokenVend = firmarToken({ id: 9, rol: 'VENDEDOR', sucursalId: 1 });
+    prisma.venta.findMany.mockResolvedValue([
+      { id: 1, total: 150000, comision: 2600, fecha: new Date(), vehiculo: { costoCompra: 100000, precioVenta: 150000 }, cliente: { nombre: 'Luis' }, empleado: { nombre: 'Ana' } },
+    ]);
+    const res = await request(app).get('/api/reportes/ventas').set('Authorization', `Bearer ${tokenVend}`);
+    expect(res.status).toBe(200);
+    expect(res.body.totales.comision).toBeUndefined();
+    expect(res.body.ventas[0].comision).toBeUndefined();
   });
   test('GET /api/reportes/ventas con VENDEDOR sin sucursal => 403', async () => {
     const tokenMal = firmarToken({ id: 9, rol: 'VENDEDOR', sucursalId: null });

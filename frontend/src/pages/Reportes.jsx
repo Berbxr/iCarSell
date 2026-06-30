@@ -26,6 +26,15 @@ export default function Reportes() {
   }
   useEffect(() => { cargar(); }, [sucursalId, desde, hasta]);
 
+  const costoTotalVeh = (v) => {
+    const veh = v?.vehiculo;
+    if (!veh) return 0;
+    const fijos = (veh.precioCompra || 0) + (veh.comisionProveedor || 0) + (veh.transporte || 0) + (veh.registroPlacas || 0) + (veh.salidas || 0);
+    const gastos = Array.isArray(veh.gastos) ? veh.gastos.reduce((a, g) => a + (g.monto || 0), 0) : 0;
+    return fijos + gastos;
+  };
+  const utilidadVeh = (v) => (v?.vehiculo ? v.vehiculo.precioVenta - costoTotalVeh(v) : 0);
+
   function exportarCSV() {
     if (!ventas) return;
     const filas = [['Folio', 'Fecha', 'Vehículo', 'Cliente', 'Vendedor', 'Total', 'Utilidad', 'Comisión']];
@@ -33,7 +42,7 @@ export default function Reportes() {
       v.folio, new Date(v.fecha).toLocaleDateString('es-MX'),
       `${v.vehiculo?.anio} ${v.vehiculo?.marca} ${v.vehiculo?.modelo}`,
       v.cliente?.nombre, `${v.empleado?.nombre || ''} ${v.empleado?.apellidos || ''}`,
-      v.total, (v.vehiculo ? v.vehiculo.precioVenta - v.vehiculo.costoCompra : 0), v.comision ?? 0,
+      v.total, utilidadVeh(v), v.comision ?? 0,
     ]));
     const csv = filas.map((f) => f.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -72,7 +81,7 @@ export default function Reportes() {
                 <td>{v.cliente?.nombre}</td>
                 <td>{v.empleado?.nombre} {v.empleado?.apellidos}</td>
                 <td>${Number(v.total).toLocaleString('es-MX')}</td>
-                <td>${(v.vehiculo ? v.vehiculo.precioVenta - v.vehiculo.costoCompra : 0).toLocaleString('es-MX')}</td>
+                <td>${utilidadVeh(v).toLocaleString('es-MX')}</td>
                 <td>{v.comision !== undefined ? `$${Number(v.comision).toLocaleString('es-MX')}` : '—'}</td>
               </tr>
             ))}</tbody>
