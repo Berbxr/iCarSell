@@ -9,6 +9,7 @@ const empleadosRoutes = require('./routes/empleados.routes');
 const usuariosRoutes = require('./routes/usuarios.routes');
 const clientesRoutes = require('./routes/clientes.routes');
 const sociosRoutes = require('./routes/socios.routes');
+const gastosRoutes = require('./routes/gastos.routes');
 const vehiculosRoutes = require('./routes/vehiculos.routes');
 const ventasRoutes = require('./routes/ventas.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
@@ -30,6 +31,7 @@ function crearApp() {
   app.use('/api/usuarios', usuariosRoutes);
   app.use('/api/clientes', clientesRoutes);
   app.use('/api/socios', sociosRoutes);
+  app.use('/api/gastos', gastosRoutes);
   app.use('/api/vehiculos', vehiculosRoutes);
   app.use('/api/ventas', ventasRoutes);
   app.use('/api/dashboard', dashboardRoutes);
