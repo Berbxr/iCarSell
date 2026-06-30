@@ -22,4 +22,10 @@ async function comisiones(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { ventas, inventario, comisiones };
+async function socios(req, res, next) {
+  try {
+    res.json(await reportes.socios({ desde: req.query.desde, hasta: req.query.hasta }));
+  } catch (e) { next(e); }
+}
+
+module.exports = { ventas, inventario, comisiones, socios };

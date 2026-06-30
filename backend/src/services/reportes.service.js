@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { rangoSemana } = require('../utils/semana');
 const { costoTotal } = require('../utils/costos');
+const { usdAMxn } = require('../utils/cambio');
 
 async function ventas({ sucursalId, desde, hasta, esAdmin }) {
   const where = {};
@@ -19,7 +20,9 @@ async function ventas({ sucursalId, desde, hasta, esAdmin }) {
     cantidad: a.cantidad + 1,
     utilidad: a.utilidad + (v.vehiculo ? v.vehiculo.precioVenta - costoTotal(v.vehiculo) : 0),
     comision: a.comision + (v.comision || 0),
-  }), { monto: 0, cantidad: 0, utilidad: 0, comision: 0 });
+    efectivo: a.efectivo + (v.metodoPago === 'EFECTIVO' ? v.total : 0),
+    transferencia: a.transferencia + (v.metodoPago === 'TRANSFERENCIA' ? v.total : 0),
+  }), { monto: 0, cantidad: 0, utilidad: 0, comision: 0, efectivo: 0, transferencia: 0 });
 
   if (!esAdmin) {
     const CAMPOS_COSTO = ['precioCompra', 'comisionProveedor', 'transporte', 'registroPlacas', 'salidas'];
@@ -70,4 +73,40 @@ async function comisiones({ sucursalId, fecha }) {
   return { inicio, fin, vendedores, totalGeneral };
 }
 
-module.exports = { ventas, inventario, comisiones };
+async function socios({ desde, hasta }) {
+  const config = await prisma.configuracion.findUnique({ where: { id: 1 } });
+  const tipoCambio = config ? config.tipoCambioDolar || 0 : 0;
+  const where = { estado: 'VENDIDO', venta: { isNot: null } };
+  if (desde || hasta) {
+    where.venta = { ...where.venta };
+    where.venta.fecha = {};
+    if (desde) where.venta.fecha.gte = new Date(desde);
+    if (hasta) where.venta.fecha.lte = new Date(hasta);
+  }
+  const vehiculos = await prisma.vehiculo.findMany({
+    where,
+    include: { gastos: true, socio: { select: { id: true, nombre: true } }, venta: { select: { fecha: true } } },
+  });
+  const porSocio = new Map();
+  const porMesMap = new Map();
+  for (const v of vehiculos) {
+    const utilidadUsd = (v.precioVenta || 0) - costoTotal(v);
+    const sid = v.socioId;
+    if (!porSocio.has(sid)) porSocio.set(sid, { socioId: sid, nombre: v.socio?.nombre || '', autos: [], totalUsd: 0, cantidad: 0 });
+    const g = porSocio.get(sid);
+    g.autos.push({ id: v.id, vehiculo: `${v.anio} ${v.marca} ${v.modelo}`, utilidadUsd });
+    g.totalUsd += utilidadUsd;
+    g.cantidad += 1;
+    if (v.venta?.fecha) {
+      const f = new Date(v.venta.fecha);
+      const mes = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
+      porMesMap.set(mes, (porMesMap.get(mes) || 0) + utilidadUsd);
+    }
+  }
+  const sociosArr = [...porSocio.values()].map((s) => ({ ...s, totalMxn: usdAMxn(s.totalUsd, tipoCambio) }));
+  const totalGeneralUsd = sociosArr.reduce((a, s) => a + s.totalUsd, 0);
+  const porMes = [...porMesMap.entries()].sort().map(([mes, utilidadUsd]) => ({ mes, utilidadUsd, utilidadMxn: usdAMxn(utilidadUsd, tipoCambio) }));
+  return { tipoCambio, socios: sociosArr, porMes, totalGeneralUsd, totalGeneralMxn: usdAMxn(totalGeneralUsd, tipoCambio) };
+}
+
+module.exports = { ventas, inventario, comisiones, socios };
