@@ -134,6 +134,22 @@ export default function Reportes() {
               </table>
             </>
           )}
+          {socioId && socios.disponibles && socios.disponibles.length > 0 && (
+            <>
+              <h3 style={{ marginTop: 16 }}>Autos disponibles de este socio (sin vender)</h3>
+              <table>
+                <thead><tr><th>Vehículo</th><th>Precio venta</th><th>Utilidad potencial USD</th><th>Utilidad potencial MXN</th></tr></thead>
+                <tbody>{socios.disponibles.map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.vehiculo}</td>
+                    <td>${Number(a.precioVenta).toLocaleString('es-MX')}</td>
+                    <td>${a.utilidadUsd.toLocaleString('es-MX')}</td>
+                    <td>${a.utilidadMxn.toLocaleString('es-MX')}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </>
+          )}
         </>
       )}
 

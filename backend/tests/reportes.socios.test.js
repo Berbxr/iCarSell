@@ -42,6 +42,30 @@ describe('Reporte de ganancias por socio', () => {
     expect(arg.where.socioId).toBe(3);
   });
 
+  test('al filtrar por socio incluye sus autos disponibles con utilidad potencial', async () => {
+    prisma.configuracion.findUnique.mockResolvedValue({ id: 1, tipoCambioDolar: 20 });
+    prisma.vehiculo.findMany.mockImplementation(({ where }) => {
+      if (where.estado === 'DISPONIBLE') {
+        return Promise.resolve([
+          { id: 5, anio: 2022, marca: 'Honda', modelo: 'Civic', precioVenta: 15000, precioCompra: 10000, comisionProveedor: 0, transporte: 0, registroPlacas: 0, salidas: 0, gastos: [] },
+        ]);
+      }
+      return Promise.resolve([]); // vendidos
+    });
+    const res = await request(app).get('/api/reportes/socios?socioId=1').set('Authorization', `Bearer ${tokenAdmin}`);
+    expect(res.status).toBe(200);
+    expect(res.body.disponibles).toHaveLength(1);
+    expect(res.body.disponibles[0].utilidadUsd).toBe(5000);
+    expect(res.body.disponibles[0].utilidadMxn).toBe(100000); // 5000 * 20
+  });
+
+  test('sin socioId no incluye disponibles', async () => {
+    prisma.configuracion.findUnique.mockResolvedValue({ id: 1, tipoCambioDolar: 20 });
+    prisma.vehiculo.findMany.mockResolvedValue([]);
+    const res = await request(app).get('/api/reportes/socios').set('Authorization', `Bearer ${tokenAdmin}`);
+    expect(res.body.disponibles).toHaveLength(0);
+  });
+
   test('prohibido a VENDEDOR', async () => {
     const res = await request(app).get('/api/reportes/socios').set('Authorization', `Bearer ${tokenVend}`);
     expect(res.status).toBe(403);

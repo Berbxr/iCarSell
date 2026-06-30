@@ -110,7 +110,22 @@ async function socios({ desde, hasta, socioId }) {
   const sociosArr = [...porSocio.values()].map((s) => ({ ...s, totalMxn: usdAMxn(s.totalUsd, tipoCambio) }));
   const totalGeneralUsd = sociosArr.reduce((a, s) => a + s.totalUsd, 0);
   const porMes = [...porMesMap.entries()].sort().map(([mes, utilidadUsd]) => ({ mes, utilidadUsd, utilidadMxn: usdAMxn(utilidadUsd, tipoCambio) }));
-  return { tipoCambio, socios: sociosArr, porMes, totalGeneralUsd, totalGeneralMxn: usdAMxn(totalGeneralUsd, tipoCambio) };
+
+  // Al filtrar por un socio, también listar sus autos aún disponibles (inventario de venta sin vender) con utilidad potencial.
+  let disponibles = [];
+  if (socioId) {
+    const disp = await prisma.vehiculo.findMany({
+      where: { socioId: Number(socioId), estado: 'DISPONIBLE' },
+      include: { gastos: true },
+      orderBy: { fechaIngreso: 'asc' },
+    });
+    disponibles = disp.map((v) => {
+      const utilidadUsd = (v.precioVenta || 0) - costoTotal(v);
+      return { id: v.id, vehiculo: `${v.anio} ${v.marca} ${v.modelo}`, precioVenta: v.precioVenta || 0, utilidadUsd, utilidadMxn: usdAMxn(utilidadUsd, tipoCambio) };
+    });
+  }
+
+  return { tipoCambio, socios: sociosArr, porMes, totalGeneralUsd, totalGeneralMxn: usdAMxn(totalGeneralUsd, tipoCambio), disponibles };
 }
 
 module.exports = { ventas, inventario, comisiones, socios };
