@@ -73,10 +73,11 @@ async function comisiones({ sucursalId, fecha }) {
   return { inicio, fin, vendedores, totalGeneral };
 }
 
-async function socios({ desde, hasta }) {
+async function socios({ desde, hasta, socioId }) {
   const config = await prisma.configuracion.findUnique({ where: { id: 1 } });
   const tipoCambio = config ? config.tipoCambioDolar || 0 : 0;
   const where = { estado: 'VENDIDO', venta: { isNot: null } };
+  if (socioId) where.socioId = Number(socioId);
   if (desde || hasta) {
     where.venta = { ...where.venta };
     where.venta.fecha = {};

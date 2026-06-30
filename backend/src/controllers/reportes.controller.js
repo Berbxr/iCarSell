@@ -24,7 +24,7 @@ async function comisiones(req, res, next) {
 
 async function socios(req, res, next) {
   try {
-    res.json(await reportes.socios({ desde: req.query.desde, hasta: req.query.hasta }));
+    res.json(await reportes.socios({ desde: req.query.desde, hasta: req.query.hasta, socioId: req.query.socioId }));
   } catch (e) { next(e); }
 }
 

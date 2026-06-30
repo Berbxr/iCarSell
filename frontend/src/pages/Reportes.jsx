@@ -4,11 +4,15 @@ import SelectorSucursal from '../components/SelectorSucursal';
 
 export default function Reportes() {
   const [sucursalId, setSucursalId] = useState(undefined);
+  const [socioId, setSocioId] = useState('');
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [ventas, setVentas] = useState(null);
   const [inventario, setInventario] = useState(null);
   const [socios, setSocios] = useState(null);
+  const [listaSocios, setListaSocios] = useState([]);
+
+  useEffect(() => { api.get('/socios').then((r) => setListaSocios(r.data)).catch(() => {}); }, []);
 
   function params() {
     const p = new URLSearchParams();
@@ -22,11 +26,11 @@ export default function Reportes() {
     const [v, i, s] = await Promise.all([
       api.get(`/reportes/ventas?${params()}`),
       api.get(`/reportes/inventario?${sucursalId ? `sucursalId=${sucursalId}` : ''}`),
-      api.get(`/reportes/socios?${params()}`),
+      api.get(`/reportes/socios?${params()}${socioId ? `&socioId=${socioId}` : ''}`),
     ]);
     setVentas(v.data); setInventario(i.data); setSocios(s.data);
   }
-  useEffect(() => { cargar(); }, [sucursalId, desde, hasta]);
+  useEffect(() => { cargar(); }, [sucursalId, socioId, desde, hasta]);
 
   const costoTotalVeh = (v) => {
     const veh = v?.vehiculo;
@@ -56,6 +60,12 @@ export default function Reportes() {
       <h1>Reportes</h1>
       <div className="row" style={{ marginBottom: 14 }}>
         <SelectorSucursal value={sucursalId} onChange={setSucursalId} incluirTodas />
+        <div><label>Socio</label>
+          <select value={socioId} onChange={(e) => setSocioId(e.target.value)} style={{ maxWidth: 200 }}>
+            <option value="">Todos los socios</option>
+            {listaSocios.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
+        </div>
         <div><label>Desde</label><input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></div>
         <div><label>Hasta</label><input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></div>
       </div>

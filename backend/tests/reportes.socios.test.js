@@ -34,6 +34,14 @@ describe('Reporte de ganancias por socio', () => {
     expect(res.body.totalGeneralMxn).toBe(170000);
   });
 
+  test('filtra por socioId cuando se especifica', async () => {
+    prisma.configuracion.findUnique.mockResolvedValue({ id: 1, tipoCambioDolar: 20 });
+    prisma.vehiculo.findMany.mockResolvedValue([]);
+    await request(app).get('/api/reportes/socios?socioId=3').set('Authorization', `Bearer ${tokenAdmin}`);
+    const arg = prisma.vehiculo.findMany.mock.calls[0][0];
+    expect(arg.where.socioId).toBe(3);
+  });
+
   test('prohibido a VENDEDOR', async () => {
     const res = await request(app).get('/api/reportes/socios').set('Authorization', `Bearer ${tokenVend}`);
     expect(res.status).toBe(403);
