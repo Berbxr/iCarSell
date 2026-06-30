@@ -17,6 +17,7 @@ export default function Reportes() {
   function params() {
     const p = new URLSearchParams();
     if (sucursalId) p.set('sucursalId', sucursalId);
+    if (socioId) p.set('socioId', socioId);
     if (desde) p.set('desde', desde);
     if (hasta) p.set('hasta', hasta);
     return p.toString();
@@ -26,7 +27,7 @@ export default function Reportes() {
     const [v, i, s] = await Promise.all([
       api.get(`/reportes/ventas?${params()}`),
       api.get(`/reportes/inventario?${sucursalId ? `sucursalId=${sucursalId}` : ''}`),
-      api.get(`/reportes/socios?${params()}${socioId ? `&socioId=${socioId}` : ''}`),
+      api.get(`/reportes/socios?${params()}`),
     ]);
     setVentas(v.data); setInventario(i.data); setSocios(s.data);
   }
@@ -43,11 +44,11 @@ export default function Reportes() {
 
   function exportarCSV() {
     if (!ventas) return;
-    const filas = [['Folio', 'Fecha', 'Vehículo', 'Cliente', 'Vendedor', 'Total', 'Utilidad', 'Comisión']];
+    const filas = [['Folio', 'Fecha', 'Vehículo', 'Socio', 'Cliente', 'Vendedor', 'Total', 'Utilidad', 'Comisión']];
     ventas.ventas.forEach((v) => filas.push([
       v.folio, new Date(v.fecha).toLocaleDateString('es-MX'),
       `${v.vehiculo?.anio} ${v.vehiculo?.marca} ${v.vehiculo?.modelo}`,
-      v.cliente?.nombre, `${v.empleado?.nombre || ''} ${v.empleado?.apellidos || ''}`,
+      v.vehiculo?.socio?.nombre || '', v.cliente?.nombre, `${v.empleado?.nombre || ''} ${v.empleado?.apellidos || ''}`,
       v.total, utilidadVeh(v), v.comision ?? 0,
     ]));
     const csv = filas.map((f) => f.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -87,11 +88,12 @@ export default function Reportes() {
             <button className="btn btn-sm" onClick={exportarCSV}>Exportar CSV</button>
           </div>
           <table>
-            <thead><tr><th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Utilidad</th><th>Comisión</th><th>Pago</th></tr></thead>
+            <thead><tr><th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Socio</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Utilidad</th><th>Comisión</th><th>Pago</th></tr></thead>
             <tbody>{ventas.ventas.map((v) => (
               <tr key={v.id}>
                 <td>{v.folio}</td><td>{new Date(v.fecha).toLocaleDateString('es-MX')}</td>
                 <td>{v.vehiculo?.anio} {v.vehiculo?.marca} {v.vehiculo?.modelo}</td>
+                <td>{v.vehiculo?.socio?.nombre || '—'}</td>
                 <td>{v.cliente?.nombre}</td>
                 <td>{v.empleado?.nombre} {v.empleado?.apellidos}</td>
                 <td>${Number(v.total).toLocaleString('es-MX')}</td>

@@ -4,7 +4,7 @@ const reportes = require('../services/reportes.service');
 async function ventas(req, res, next) {
   try {
     const sucursalId = resolverSucursalLectura(req);
-    res.json(await reportes.ventas({ sucursalId, desde: req.query.desde, hasta: req.query.hasta, esAdmin: req.usuario.rol === 'ADMIN' }));
+    res.json(await reportes.ventas({ sucursalId, desde: req.query.desde, hasta: req.query.hasta, socioId: req.query.socioId, esAdmin: req.usuario.rol === 'ADMIN' }));
   } catch (e) { next(e); }
 }
 

@@ -3,9 +3,10 @@ const { rangoSemana } = require('../utils/semana');
 const { costoTotal } = require('../utils/costos');
 const { usdAMxn } = require('../utils/cambio');
 
-async function ventas({ sucursalId, desde, hasta, esAdmin }) {
+async function ventas({ sucursalId, desde, hasta, socioId, esAdmin }) {
   const where = {};
   if (sucursalId !== undefined) where.sucursalId = sucursalId;
+  if (socioId) where.vehiculo = { socioId: Number(socioId) };
   if (desde || hasta) {
     where.fecha = {};
     if (desde) where.fecha.gte = new Date(desde);
@@ -13,7 +14,7 @@ async function ventas({ sucursalId, desde, hasta, esAdmin }) {
   }
   const lista = await prisma.venta.findMany({
     where, orderBy: { fecha: 'desc' },
-    include: { vehiculo: { include: { gastos: true } }, cliente: { select: { nombre: true } }, empleado: { select: { nombre: true, apellidos: true } }, sucursal: { select: { nombre: true } } },
+    include: { vehiculo: { include: { gastos: true, socio: { select: { id: true, nombre: true } } } }, cliente: { select: { nombre: true } }, empleado: { select: { nombre: true, apellidos: true } }, sucursal: { select: { nombre: true } } },
   });
   const totales = lista.reduce((a, v) => ({
     monto: a.monto + v.total,
@@ -32,6 +33,8 @@ async function ventas({ sucursalId, desde, hasta, esAdmin }) {
         veh = { ...veh };
         for (const k of CAMPOS_COSTO) delete veh[k];
         delete veh.gastos;
+        delete veh.socio;
+        delete veh.socioId;
       }
       return { ...resto, vehiculo: veh };
     });

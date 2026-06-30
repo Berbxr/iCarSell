@@ -26,13 +26,20 @@ describe('Reportes', () => {
   });
   test('GET /api/reportes/ventas suma comisiones para ADMIN', async () => {
     prisma.venta.findMany.mockResolvedValue([
-      { id: 1, total: 150000, comision: 2600, fecha: new Date(), vehiculo: { costoCompra: 100000, precioVenta: 150000 }, cliente: { nombre: 'Luis' }, empleado: { nombre: 'Ana' } },
-      { id: 2, total: 80000, comision: 1000, fecha: new Date(), vehiculo: { costoCompra: 60000, precioVenta: 80000 }, cliente: { nombre: 'Pedro' }, empleado: { nombre: 'Ana' } },
+      { id: 1, total: 150000, comision: 2600, fecha: new Date(), vehiculo: { costoCompra: 100000, precioVenta: 150000, socio: { id: 1, nombre: 'Juan' } }, cliente: { nombre: 'Luis' }, empleado: { nombre: 'Ana' } },
+      { id: 2, total: 80000, comision: 1000, fecha: new Date(), vehiculo: { costoCompra: 60000, precioVenta: 80000, socio: { id: 1, nombre: 'Juan' } }, cliente: { nombre: 'Pedro' }, empleado: { nombre: 'Ana' } },
     ]);
     const res = await request(app).get('/api/reportes/ventas').set('Authorization', `Bearer ${tokenAdmin}`);
     expect(res.status).toBe(200);
     expect(res.body.totales.comision).toBe(3600);
     expect(res.body.ventas[0].comision).toBe(2600);
+    expect(res.body.ventas[0].vehiculo.socio).toEqual({ id: 1, nombre: 'Juan' });
+  });
+  test('GET /api/reportes/ventas?socioId filtra por socio', async () => {
+    prisma.venta.findMany.mockResolvedValue([]);
+    await request(app).get('/api/reportes/ventas?socioId=3').set('Authorization', `Bearer ${tokenAdmin}`);
+    const arg = prisma.venta.findMany.mock.calls.at(-1)[0];
+    expect(arg.where.vehiculo).toEqual({ socioId: 3 });
   });
   test('GET /api/reportes/ventas oculta comisiones a VENDEDOR', async () => {
     const tokenVend = firmarToken({ id: 9, rol: 'VENDEDOR', sucursalId: 1 });
