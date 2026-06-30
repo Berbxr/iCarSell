@@ -32,6 +32,11 @@ enum Combustible {
   ELECTRICO
 }
 
+enum MetodoPago {
+  EFECTIVO
+  TRANSFERENCIA
+}
+
 model Sucursal {
   id               Int        @id @default(autoincrement())
   nombre           String
@@ -48,6 +53,7 @@ model Sucursal {
   empleados        Empleado[]
   vehiculos        Vehiculo[]
   ventas           Venta[]
+  gastosGenerales  GastoGeneral[]
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 }
@@ -99,6 +105,8 @@ model Vehiculo {
   id           Int            @id @default(autoincrement())
   sucursalId   Int
   sucursal     Sucursal       @relation(fields: [sucursalId], references: [id])
+  socioId      Int
+  socio        Socio          @relation(fields: [socioId], references: [id])
   anio         Int
   marca        String
   modelo       String
@@ -147,6 +155,7 @@ model Venta {
   empleado      Empleado @relation("ventasVendedor", fields: [empleadoId], references: [id])
   total         Float
   comision      Float    @default(0)
+  metodoPago    MetodoPago @default(EFECTIVO)
   observaciones String   @default("SIN GARANTÍA")
   fecha         DateTime @default(now())
   createdAt     DateTime @default(now())
@@ -157,7 +166,27 @@ model Configuracion {
   id                   Int      @id @default(1)
   diasAntiguedadAlerta Int      @default(60)
   terminosContrato     String   @default("1-. EN CASO DE INCUMPLIMIENTO DE CONTRATO Y/O DEVOLUCIÓN SE PENALIZARÁ ECONÓMICAMENTE.\n2-. EL PAGO DE LA UNIDAD ES EN UNA SOLA EXHIBICIÓN.\n3-. LA UNIDAD NO CUENTA CON GARANTÍA")
+  tipoCambioDolar      Float    @default(0)
   updatedAt            DateTime @updatedAt
+}
+
+model Socio {
+  id        Int        @id @default(autoincrement())
+  nombre    String
+  activo    Boolean    @default(true)
+  vehiculos Vehiculo[]
+  createdAt DateTime   @default(now())
+}
+
+model GastoGeneral {
+  id          Int       @id @default(autoincrement())
+  fecha       DateTime  @default(now())
+  categoria   String
+  descripcion String
+  monto       Float
+  sucursalId  Int?
+  sucursal    Sucursal? @relation(fields: [sucursalId], references: [id])
+  createdAt   DateTime  @default(now())
 }
 
 model Auditoria {

@@ -33,6 +33,11 @@ async function main() {
   }
   if (ventasSinComision.length) console.log(`Backfill de comisión en ${ventasSinComision.length} venta(s).`);
 
+  if ((await prisma.socio.count()) === 0) {
+    await prisma.socio.create({ data: { nombre: 'Sin asignar' } });
+    console.log('Socio inicial creado.');
+  }
+
   const existe = await prisma.usuario.findUnique({ where: { username: 'admin' } });
   if (existe) { console.log('El usuario admin ya existe.'); return; }
   const passwordHash = await hashPassword(process.env.ADMIN_PASSWORD_INICIAL || 'Cambiar123');
