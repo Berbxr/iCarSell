@@ -95,6 +95,19 @@ export default function Reportes() {
             {ventas.totales.comision !== undefined && (
               <div className="kpi"><h3>Comisiones a pagar</h3><div className="valor">{money(ventas.totales.comision)}<U m="MXN" /></div></div>
             )}
+            {ventas.totales.comision !== undefined && (
+              tc > 0 ? (
+                <div className="kpi">
+                  <h3>Utilidad neta (tras comisiones)</h3>
+                  <div className="valor" style={{ color: (ventas.totales.utilidad * tc - ventas.totales.comision) >= 0 ? 'var(--ok)' : 'var(--danger)' }}>
+                    {money(ventas.totales.utilidad * tc - ventas.totales.comision)}<U m="MXN" />
+                  </div>
+                  <div className="sub">Utilidad en MXN − comisiones</div>
+                </div>
+              ) : (
+                <div className="kpi"><h3>Utilidad neta (tras comisiones)</h3><div className="valor" style={{ fontSize: 15, color: 'var(--muted)' }}>Configura el tipo de cambio</div></div>
+              )
+            )}
           </div>
           {ventas.totales.efectivo !== undefined && (
             <div className="kpis">
