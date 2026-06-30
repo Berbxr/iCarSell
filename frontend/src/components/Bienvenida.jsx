@@ -25,7 +25,7 @@ export default function Bienvenida({ usuario, mostrarAccesos = true }) {
     <div>
       <div className="hero">
         <div className="hero-info">
-          <div className="hero-marca">iCar<span>Sell</span></div>
+          <div className="hero-marca">Empalme <span>Motors</span></div>
           <h1 className="hero-titulo">{saludo}, {nombre}.</h1>
           {sucursal && <div className="hero-sucursal">📍 Sucursal {sucursal}</div>}
           <p className="hero-sub">{HOY[0].toUpperCase() + HOY.slice(1)}</p>

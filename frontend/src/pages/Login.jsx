@@ -24,7 +24,7 @@ export default function Login() {
   return (
     <div className="login">
       <div className="login-card">
-        <div className="marca">iCar<span>Sell</span></div>
+        <div className="marca">Empalme <span>Motors</span></div>
         <p className="sub">Gestión de venta de autos</p>
         <form onSubmit={onSubmit}>
           <div className="field">

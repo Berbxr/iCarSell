@@ -28,7 +28,7 @@ h3 { font-size: 15px; margin: 0 0 8px; }
   height: 100vh; overflow-y: auto;
 }
 .sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 4px 16px 16px; font-size: 20px; font-weight: 800; color: #fff; letter-spacing: .5px; }
-.sidebar .brand-logo { width: 40px; height: 40px; flex-shrink: 0; }
+.sidebar .brand-logo { width: 60px; height: 60px; flex-shrink: 0; }
 .sidebar .brand span { color: var(--primary); }
 .sidebar .brand-name { line-height: 1.05; }
 .sidebar .brand-name span { display: block; }
