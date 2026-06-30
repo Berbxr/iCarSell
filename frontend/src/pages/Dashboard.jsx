@@ -38,12 +38,12 @@ export default function Dashboard() {
       <div className="kpis">
         <div className="kpi">
           <h3>Ventas de la semana</h3>
-          <div className="valor">{money(data.ventasSemana.monto)}</div>
+          <div className="valor">{money(data.ventasSemana.monto)} <span style={{ fontSize: 13, color: 'var(--muted)' }}>USD</span></div>
           <div className="sub">{data.ventasSemana.cantidad} venta(s)</div>
         </div>
         <div className="kpi">
           <h3>Ventas del mes</h3>
-          <div className="valor">{money(data.ventasMes.monto)}</div>
+          <div className="valor">{money(data.ventasMes.monto)} <span style={{ fontSize: 13, color: 'var(--muted)' }}>USD</span></div>
           <div className="sub">{data.ventasMes.cantidad} venta(s)</div>
         </div>
         <div className="kpi">
@@ -76,7 +76,7 @@ export default function Dashboard() {
           <div className="sub">Utilidad − gastos − comisiones</div>
         </div>
         <div className="kpi">
-          <h3>Cobro del mes</h3>
+          <h3>Cobro del mes (USD)</h3>
           <div className="valor" style={{ fontSize: 18 }}>Efectivo: {money(data.efectivoMes)}</div>
           <div className="sub">Transferencia: {money(data.transferenciaMes)}</div>
         </div>
