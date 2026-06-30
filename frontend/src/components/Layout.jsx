@@ -40,8 +40,8 @@ export default function Layout({ children }) {
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
-          <img src="/logo.svg" alt="iCarSell" className="brand-logo" />
-          <div className="brand-name">iCar<span>Sell</span></div>
+          <img src="/logo.svg" alt="EmpalmeMotors" className="brand-logo" />
+          <div className="brand-name">Empalme<span>Motors</span></div>
         </div>
         <nav className="nav">
           {GRUPOS.map((g, gi) => {
