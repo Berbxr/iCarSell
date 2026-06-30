@@ -31,6 +31,8 @@ function vistaVehiculo(v, rol) {
     const base = { ...v };
     for (const k of CAMPOS_COSTO) delete base[k];
     delete base.gastos;
+    delete base.socio;
+    delete base.socioId;
     return { ...base, ...dias };
   }
   return {

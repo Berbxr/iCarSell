@@ -18,6 +18,11 @@ async function actualizar(req, res, next) {
       data.diasAntiguedadAlerta = n;
     }
     if (req.body.terminosContrato !== undefined) data.terminosContrato = String(req.body.terminosContrato);
+    if (req.body.tipoCambioDolar !== undefined) {
+      const tc = Number(req.body.tipoCambioDolar);
+      if (!Number.isFinite(tc) || tc < 0) throw new ApiError(400, 'tipoCambioDolar debe ser un número >= 0');
+      data.tipoCambioDolar = tc;
+    }
     const c = await prisma.configuracion.upsert({ where: { id: 1 }, update: data, create: { id: 1, ...data } });
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'EDITAR_CONFIGURACION', entidad: 'Configuracion', entidadId: 1, ip: req.ip });
     res.json(c);

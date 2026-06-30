@@ -4,6 +4,7 @@ const v = {
   id: 1, marca: 'Nissan', modelo: 'Versa', precioVenta: 9000,
   precioCompra: 5000, comisionProveedor: 300, transporte: 700, registroPlacas: 400, salidas: 100,
   gastos: [{ id: 1, monto: 500, descripcion: 'Pintura' }],
+  socioId: 4, socio: { id: 4, nombre: 'Juan' },
   fechaIngreso: new Date('2026-06-01T00:00:00'), fechaPaseAVenta: new Date('2026-06-11T00:00:00'),
 };
 
@@ -33,5 +34,15 @@ describe('vistaVehiculo', () => {
     expect(r.gastos).toBeUndefined();
     expect(r.costoTotal).toBeUndefined();
     expect(r.utilidad).toBeUndefined();
+  });
+  test('ADMIN conserva el socio', () => {
+    const r = vistaVehiculo(v, 'ADMIN');
+    expect(r.socio).toEqual({ id: 4, nombre: 'Juan' });
+    expect(r.socioId).toBe(4);
+  });
+  test('VENDEDOR no ve el socio', () => {
+    const r = vistaVehiculo(v, 'VENDEDOR');
+    expect(r.socio).toBeUndefined();
+    expect(r.socioId).toBeUndefined();
   });
 });

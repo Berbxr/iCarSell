@@ -28,4 +28,16 @@ describe('Configuracion', () => {
     const res = await request(app).put('/api/configuracion').set('Authorization', `Bearer ${tokenVend}`).send({ diasAntiguedadAlerta: 90 });
     expect(res.status).toBe(403);
   });
+  test('PUT actualiza el tipo de cambio (ADMIN)', async () => {
+    prisma.configuracion.upsert.mockResolvedValue({ id: 1, tipoCambioDolar: 18.5 });
+    const res = await request(app).put('/api/configuracion').set('Authorization', `Bearer ${tokenAdmin}`).send({ tipoCambioDolar: 18.5 });
+    expect(res.status).toBe(200);
+    expect(prisma.configuracion.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ tipoCambioDolar: 18.5 }),
+    }));
+  });
+  test('PUT rechaza tipo de cambio negativo', async () => {
+    const res = await request(app).put('/api/configuracion').set('Authorization', `Bearer ${tokenAdmin}`).send({ tipoCambioDolar: -1 });
+    expect(res.status).toBe(400);
+  });
 });
