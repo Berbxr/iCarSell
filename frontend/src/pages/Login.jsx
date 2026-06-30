@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 
 export default function Login() {
   const { login } = useAuth();
+  const { nombre, logo } = useBranding();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +26,8 @@ export default function Login() {
   return (
     <div className="login">
       <div className="login-card">
-        <div className="marca">Empalme <span>Motors</span></div>
+        <img src={logo || '/logo.svg'} alt={nombre} className="login-logo" />
+        <div className="marca">{nombre}</div>
         <p className="sub">Gestión de venta de autos</p>
         <form onSubmit={onSubmit}>
           <div className="field">

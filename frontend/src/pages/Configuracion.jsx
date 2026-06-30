@@ -1,16 +1,39 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
+import { useBranding } from '../context/BrandingContext';
 
 export default function Configuracion() {
+  const { recargar: recargarBranding } = useBranding();
   const [form, setForm] = useState({ diasAntiguedadAlerta: 60, terminosContrato: '', tipoCambioDolar: 0 });
   const [error, setError] = useState('');
   const [ok, setOk] = useState(false);
   const [rangos, setRangos] = useState([]);
   const [okRangos, setOkRangos] = useState(false);
   const [errRangos, setErrRangos] = useState('');
+  const [marca, setMarca] = useState({ nombreNegocio: '', logo: null });
+  const [okMarca, setOkMarca] = useState(false);
+  const [errMarca, setErrMarca] = useState('');
 
   useEffect(() => { api.get('/configuracion').then((r) => setForm({ diasAntiguedadAlerta: r.data.diasAntiguedadAlerta, terminosContrato: r.data.terminosContrato || '', tipoCambioDolar: r.data.tipoCambioDolar || 0 })); }, []);
   useEffect(() => { api.get('/configuracion/comisiones').then((r) => setRangos(r.data.map((x) => ({ desdeUsd: x.desdeUsd, monto: x.monto })))); }, []);
+  useEffect(() => { api.get('/configuracion/branding').then((r) => setMarca({ nombreNegocio: r.data.nombre || '', logo: r.data.logo || null })); }, []);
+
+  function elegirLogo(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setMarca((m) => ({ ...m, logo: reader.result }));
+    reader.readAsDataURL(file);
+  }
+
+  async function guardarMarca(e) {
+    e.preventDefault(); setErrMarca(''); setOkMarca(false);
+    try {
+      await api.put('/configuracion', { nombreNegocio: marca.nombreNegocio, logo: marca.logo });
+      setOkMarca(true);
+      recargarBranding();
+    } catch (err) { setErrMarca(err.response?.data?.error || 'Error al guardar la marca'); }
+  }
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
 
@@ -39,6 +62,29 @@ export default function Configuracion() {
   return (
     <div>
       <h1>Configuración</h1>
+
+      <div className="card">
+        <h2>Identidad / Marca</h2>
+        <form onSubmit={guardarMarca} className="grid" style={{ maxWidth: 640 }}>
+          <div>
+            <label>Nombre del negocio</label>
+            <input value={marca.nombreNegocio} onChange={(e) => setMarca((m) => ({ ...m, nombreNegocio: e.target.value }))} required style={{ maxWidth: 320 }} />
+          </div>
+          <div>
+            <label>Logo (preferencia SVG)</label>
+            <div className="row" style={{ alignItems: 'center' }}>
+              <img src={marca.logo || '/logo.svg'} alt="Logo" style={{ width: 64, height: 64, objectFit: 'contain', background: '#0f172a', borderRadius: 8, padding: 4 }} />
+              <input type="file" accept="image/svg+xml,image/*" onChange={elegirLogo} style={{ maxWidth: 280 }} />
+              {marca.logo && <button type="button" className="btn btn-sm" onClick={() => setMarca((m) => ({ ...m, logo: null }))}>Quitar logo</button>}
+            </div>
+            <p style={{ color: 'var(--muted)', fontSize: 13 }}>Aparece en el menú lateral, el login y como ícono de la pestaña. Sin logo se usa el predeterminado.</p>
+          </div>
+          {errMarca && <p className="error">{errMarca}</p>}
+          {okMarca && <p style={{ color: 'var(--ok)' }}>Marca guardada.</p>}
+          <div><button className="btn btn-primary" type="submit">Guardar marca</button></div>
+        </form>
+      </div>
+
       <div className="card">
         <form onSubmit={guardar} className="grid" style={{ maxWidth: 640 }}>
           <div>

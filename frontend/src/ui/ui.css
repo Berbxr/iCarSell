@@ -150,6 +150,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 /* Login */
 .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0f172a, #1e3a8a); }
 .login-card { background: #fff; border-radius: 14px; padding: 36px 32px; width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+.login-logo { display: block; width: 72px; height: 72px; object-fit: contain; margin: 0 auto 12px; }
 .login-card .marca { font-size: 30px; font-weight: 800; text-align: center; margin-bottom: 4px; }
 .login-card .marca span { color: var(--primary); }
 .login-card .sub { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 24px; }

@@ -40,4 +40,32 @@ describe('Configuracion', () => {
     const res = await request(app).put('/api/configuracion').set('Authorization', `Bearer ${tokenAdmin}`).send({ tipoCambioDolar: -1 });
     expect(res.status).toBe(400);
   });
+
+  test('GET /branding responde SIN token', async () => {
+    prisma.configuracion.findUnique.mockResolvedValue({ id: 1, nombreNegocio: 'EmpalmeMotors', logo: 'data:image/svg+xml;base64,AAA' });
+    const res = await request(app).get('/api/configuracion/branding');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ nombre: 'EmpalmeMotors', logo: 'data:image/svg+xml;base64,AAA' });
+  });
+
+  test('GET /branding usa defaults si no hay config', async () => {
+    prisma.configuracion.findUnique.mockResolvedValue(null);
+    const res = await request(app).get('/api/configuracion/branding');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ nombre: 'iCarSell', logo: null });
+  });
+
+  test('PUT (ADMIN) guarda nombre y logo', async () => {
+    prisma.configuracion.upsert.mockResolvedValue({ id: 1, nombreNegocio: 'Mi Negocio', logo: 'data:xxx' });
+    const res = await request(app).put('/api/configuracion').set('Authorization', `Bearer ${tokenAdmin}`).send({ nombreNegocio: 'Mi Negocio', logo: 'data:xxx' });
+    expect(res.status).toBe(200);
+    expect(prisma.configuracion.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ nombreNegocio: 'Mi Negocio', logo: 'data:xxx' }),
+    }));
+  });
+
+  test('PUT rechaza nombre de negocio vacío', async () => {
+    const res = await request(app).put('/api/configuracion').set('Authorization', `Bearer ${tokenAdmin}`).send({ nombreNegocio: '  ' });
+    expect(res.status).toBe(400);
+  });
 });

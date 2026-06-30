@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import api from '../api/client';
 
 const GRUPOS = [
@@ -29,6 +30,7 @@ const GRUPOS = [
 
 export default function Layout({ children }) {
   const { usuario, logout } = useAuth();
+  const { nombre, logo } = useBranding();
   const navigate = useNavigate();
   const rol = usuario?.rol;
   const [tc, setTc] = useState(null);
@@ -40,8 +42,8 @@ export default function Layout({ children }) {
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
-          <img src="/logo.svg" alt="EmpalmeMotors" className="brand-logo" />
-          <div className="brand-name">Empalme<span>Motors</span></div>
+          <img src={logo || '/logo.svg'} alt={nombre} className="brand-logo" />
+          <div className="brand-name">{nombre}</div>
         </div>
         <nav className="nav">
           {GRUPOS.map((g, gi) => {

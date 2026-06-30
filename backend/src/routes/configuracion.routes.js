@@ -4,6 +4,8 @@ const rbac = require('../middlewares/rbac');
 const ctrl = require('../controllers/configuracion.controller');
 
 const router = Router();
+// Branding es público (el login lo necesita sin sesión).
+router.get('/branding', ctrl.branding);
 router.use(auth);
 router.get('/', ctrl.obtener);
 router.put('/', rbac('ADMIN'), ctrl.actualizar);

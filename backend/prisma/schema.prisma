@@ -167,6 +167,8 @@ model Configuracion {
   diasAntiguedadAlerta Int      @default(60)
   terminosContrato     String   @default("1-. EN CASO DE INCUMPLIMIENTO DE CONTRATO Y/O DEVOLUCIÓN SE PENALIZARÁ ECONÓMICAMENTE.\n2-. EL PAGO DE LA UNIDAD ES EN UNA SOLA EXHIBICIÓN.\n3-. LA UNIDAD NO CUENTA CON GARANTÍA")
   tipoCambioDolar      Float    @default(0)
+  nombreNegocio        String   @default("iCarSell")
+  logo                 String?
   updatedAt            DateTime @updatedAt
 }
 

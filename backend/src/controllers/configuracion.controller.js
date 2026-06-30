@@ -23,9 +23,22 @@ async function actualizar(req, res, next) {
       if (!Number.isFinite(tc) || tc < 0) throw new ApiError(400, 'tipoCambioDolar debe ser un número >= 0');
       data.tipoCambioDolar = tc;
     }
+    if (req.body.nombreNegocio !== undefined) {
+      const n = String(req.body.nombreNegocio).trim();
+      if (!n) throw new ApiError(400, 'El nombre del negocio es obligatorio');
+      data.nombreNegocio = n;
+    }
+    if (req.body.logo !== undefined) data.logo = req.body.logo ? String(req.body.logo) : null;
     const c = await prisma.configuracion.upsert({ where: { id: 1 }, update: data, create: { id: 1, ...data } });
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'EDITAR_CONFIGURACION', entidad: 'Configuracion', entidadId: 1, ip: req.ip });
     res.json(c);
+  } catch (e) { next(e); }
+}
+
+async function branding(req, res, next) {
+  try {
+    const c = await prisma.configuracion.findUnique({ where: { id: 1 } });
+    res.json({ nombre: c ? c.nombreNegocio : 'iCarSell', logo: c ? c.logo : null });
   } catch (e) { next(e); }
 }
 
@@ -59,4 +72,4 @@ async function actualizarComisiones(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { obtener, actualizar, obtenerComisiones, actualizarComisiones };
+module.exports = { obtener, actualizar, branding, obtenerComisiones, actualizarComisiones };
