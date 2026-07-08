@@ -111,7 +111,7 @@ model Vehiculo {
   marca        String
   modelo       String
   color        String?
-  vin          String?
+  vin          String?  @unique
   placa        String?
   kilometraje  Int?
   transmision  Transmision?
