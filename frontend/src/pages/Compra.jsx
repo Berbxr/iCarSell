@@ -23,6 +23,7 @@ export default function Compra() {
   const [nuevoGasto, setNuevoGasto] = useState({ descripcion: '', monto: '' });
   const [mostrarForm, setMostrarForm] = useState(false);
   const [error, setError] = useState('');
+  const [vinAviso, setVinAviso] = useState('');
   const [socios, setSocios] = useState([]);
   const [filtroSocio, setFiltroSocio] = useState('');
 
@@ -46,18 +47,30 @@ export default function Compra() {
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
 
+  async function verificarVin() {
+    const vin = (form.vin || '').trim();
+    if (!vin) { setVinAviso(''); return; }
+    try {
+      const params = new URLSearchParams({ vin });
+      if (editId) params.set('excluir', String(editId));
+      const { data } = await api.get(`/vehiculos/vin-existe?${params.toString()}`);
+      setVinAviso(data.existe ? `Este VIN ya está registrado en ${data.descripcion}` : '');
+    } catch { setVinAviso(''); }
+  }
+
   const puestoEnMexico = num(form.precioCompra) + num(form.comisionProveedor) + num(form.transporte) + num(form.registroPlacas) + num(form.salidas);
   const totalGastos = gastos.reduce((a, g) => a + num(g.monto), 0);
   const costoTotal = puestoEnMexico + totalGastos;
   const utilidad = num(form.precioVenta) - costoTotal;
 
-  function nuevo() { setEditId(null); setForm(VACIO); setGastos([]); setMostrarForm(true); }
+  function nuevo() { setEditId(null); setForm(VACIO); setGastos([]); setVinAviso(''); setMostrarForm(true); }
 
   async function abrir(id) {
     const { data } = await api.get(`/vehiculos/${id}`);
     setEditId(id);
     setForm({ ...VACIO, ...data, transmision: data.transmision || '', combustible: data.combustible || '', fotos: (data.fotos || []).map((f) => urlFoto(f.data)) });
     setGastos(data.gastos || []);
+    setVinAviso('');
     setMostrarForm(true);
   }
 
@@ -118,7 +131,13 @@ export default function Compra() {
               <div style={{ flex: 1 }}><label>Color</label><input value={form.color || ''} onChange={(e) => set('color', e.target.value)} /></div>
             </div>
             <div className="row">
-              <div style={{ flex: 1 }}><label>VIN</label><input value={form.vin || ''} maxLength={17} onChange={(e) => set('vin', e.target.value)} /></div>
+              <div style={{ flex: 1 }}>
+                <label>VIN</label>
+                <input value={form.vin || ''} maxLength={17}
+                  onChange={(e) => { set('vin', e.target.value); if (vinAviso) setVinAviso(''); }}
+                  onBlur={verificarVin} />
+                {vinAviso && <div style={{ color: '#c0392b', fontSize: 12, marginTop: 4 }}>{vinAviso}</div>}
+              </div>
               <div style={{ flex: 1 }}><label>Placa</label><input value={form.placa || ''} onChange={(e) => set('placa', e.target.value)} /></div>
               <div style={{ flex: 1 }}><label>Kilometraje</label><input type="number" value={form.kilometraje || ''} onChange={(e) => set('kilometraje', e.target.value)} /></div>
               <div style={{ flex: 1 }}><label>Sucursal</label><SelectorSucursal value={form.sucursalId} onChange={(v) => set('sucursalId', v)} /></div>
