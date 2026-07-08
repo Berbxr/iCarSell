@@ -6,6 +6,7 @@ const ctrl = require('../controllers/vehiculos.controller');
 const router = Router();
 router.use(auth);
 router.get('/', ctrl.listar);
+router.get('/vin-existe', ctrl.vinExiste);
 router.get('/:id', ctrl.obtener);
 router.post('/', rbac('ADMIN', 'ALMACEN'), ctrl.crear);
 router.put('/:id', rbac('ADMIN', 'ALMACEN'), ctrl.actualizar);

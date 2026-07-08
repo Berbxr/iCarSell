@@ -84,4 +84,23 @@ describe('Vehiculos', () => {
     expect(prisma.vehiculo.create.mock.calls[0][0].data.vin).toBeNull();
     expect(prisma.vehiculo.findFirst).not.toHaveBeenCalled();
   });
+  test('GET /vin-existe con VIN existente => { existe: true, descripcion }', async () => {
+    prisma.vehiculo.findFirst.mockClear();
+    prisma.vehiculo.findFirst.mockResolvedValue({ id: 7, marca: 'Nissan', modelo: 'Versa', anio: 2018, sucursal: { nombre: 'Empalme' } });
+    const res = await request(app).get('/api/vehiculos/vin-existe?vin=abc123').set('Authorization', `Bearer ${tokenVend}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ existe: true, descripcion: 'Nissan Versa 2018 (Empalme)' });
+    expect(prisma.vehiculo.findFirst.mock.calls[0][0].where.vin).toBe('ABC123');
+  });
+  test('GET /vin-existe sin coincidencia => { existe: false }', async () => {
+    prisma.vehiculo.findFirst.mockResolvedValue(null);
+    const res = await request(app).get('/api/vehiculos/vin-existe?vin=zzz').set('Authorization', `Bearer ${tokenVend}`);
+    expect(res.body).toEqual({ existe: false });
+  });
+  test('GET /vin-existe con ?excluir excluye ese id', async () => {
+    prisma.vehiculo.findFirst.mockClear();
+    prisma.vehiculo.findFirst.mockResolvedValue(null);
+    await request(app).get('/api/vehiculos/vin-existe?vin=abc&excluir=5').set('Authorization', `Bearer ${tokenVend}`);
+    expect(prisma.vehiculo.findFirst.mock.calls[0][0].where.id).toEqual({ not: 5 });
+  });
 });

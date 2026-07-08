@@ -167,4 +167,19 @@ async function pasarAVenta(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { listar, obtener, crear, actualizar, cambiarEstado, agregarGasto, eliminarGasto, pasarAVenta };
+async function vinExiste(req, res, next) {
+  try {
+    const vin = String(req.query.vin || '').trim().toUpperCase();
+    const excluir = req.query.excluir ? Number(req.query.excluir) : null;
+    if (!vin) return res.json({ existe: false });
+    const v = await prisma.vehiculo.findFirst({
+      where: { vin, ...(excluir ? { id: { not: excluir } } : {}) },
+      include: { sucursal: { select: { nombre: true } } },
+    });
+    res.json(v
+      ? { existe: true, descripcion: `${v.marca} ${v.modelo} ${v.anio} (${v.sucursal.nombre})` }
+      : { existe: false });
+  } catch (e) { next(e); }
+}
+
+module.exports = { listar, obtener, crear, actualizar, cambiarEstado, agregarGasto, eliminarGasto, pasarAVenta, vinExiste };
