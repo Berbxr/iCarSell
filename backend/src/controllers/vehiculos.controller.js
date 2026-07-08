@@ -6,13 +6,17 @@ const { vistaVehiculo } = require('../utils/costos');
 const auditoria = require('../services/auditoria.service');
 
 const ESTADOS = ['EN_COMPRA', 'DISPONIBLE', 'RESERVADO', 'VENDIDO'];
-const CAMPOS = ['marca', 'modelo', 'color', 'vin', 'placa', 'notas'];
+const CAMPOS = ['marca', 'modelo', 'color', 'placa', 'notas'];
 const SOCIO_SEL = { select: { id: true, nombre: true } };
 const INCLUDE_DETALLE = { fotos: { orderBy: { orden: 'asc' } }, gastos: true, venta: { select: { fecha: true } }, socio: SOCIO_SEL };
 
 function datosBase(body) {
   const data = {};
   for (const k of CAMPOS) if (body[k] !== undefined) data[k] = body[k];
+  if (body.vin !== undefined) {
+    const v = String(body.vin).trim().toUpperCase();
+    data.vin = v === '' ? null : v;
+  }
   if (body.anio !== undefined) data.anio = Number(body.anio);
   if (body.kilometraje !== undefined) data.kilometraje = body.kilometraje === '' || body.kilometraje == null ? null : Number(body.kilometraje);
   for (const k of ['precioCompra', 'comisionProveedor', 'transporte', 'registroPlacas', 'salidas']) {
@@ -23,6 +27,18 @@ function datosBase(body) {
   if (body.combustible !== undefined) data.combustible = body.combustible || null;
   if (body.socioId !== undefined) data.socioId = Number(body.socioId);
   return data;
+}
+
+async function validarVinUnico(vin, idExcluir) {
+  if (!vin) return;
+  const existente = await prisma.vehiculo.findFirst({
+    where: { vin, ...(idExcluir ? { id: { not: idExcluir } } : {}) },
+    include: { sucursal: { select: { nombre: true } } },
+  });
+  if (existente) {
+    throw new ApiError(409,
+      `El VIN ${vin} ya está registrado en ${existente.marca} ${existente.modelo} ${existente.anio} (sucursal ${existente.sucursal.nombre}).`);
+  }
 }
 
 async function listar(req, res, next) {
@@ -60,6 +76,7 @@ async function crear(req, res, next) {
     if (!req.body.socioId) throw new ApiError(400, 'El socio es obligatorio');
     const sucursalId = resolverSucursalEscritura(req, req.body.sucursalId);
     const data = { ...datosBase(req.body), sucursalId, estado: 'EN_COMPRA' };
+    await validarVinUnico(data.vin, null);
     // Comprimir y escribir las fotos a disco ANTES de la transacción (trabajo pesado fuera de la BD).
     const rutas = Array.isArray(req.body.fotos) ? await procesarEntradas(req.body.fotos) : [];
     const v = await prisma.$transaction(async (tx) => {
@@ -76,6 +93,7 @@ async function actualizar(req, res, next) {
   try {
     const id = Number(req.params.id);
     const data = datosBase(req.body);
+    if (data.vin !== undefined) await validarVinUnico(data.vin, id);
     if (req.body.sucursalId !== undefined) data.sucursalId = resolverSucursalEscritura(req, req.body.sucursalId);
 
     let rutas; let aBorrar = [];

@@ -1,6 +1,6 @@
 jest.mock('../src/config/prisma', () => {
   const prisma = {
-    vehiculo: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+    vehiculo: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), findFirst: jest.fn() },
     vehiculoFoto: { findMany: jest.fn().mockResolvedValue([]), deleteMany: jest.fn(), createMany: jest.fn() },
     auditoria: { create: jest.fn().mockResolvedValue({}) },
   };
@@ -53,5 +53,35 @@ describe('Vehiculos', () => {
     const res = await request(app).post('/api/vehiculos').set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ anio: 2018, marca: 'Nissan', modelo: 'Versa' });
     expect(res.status).toBe(400);
+  });
+  test('POST con VIN ya existente => 409', async () => {
+    prisma.vehiculo.findFirst.mockResolvedValue({ id: 7, marca: 'Nissan', modelo: 'Versa', anio: 2018, sucursal: { nombre: 'Empalme' } });
+    const res = await request(app).post('/api/vehiculos').set('Authorization', `Bearer ${tokenAlmacen}`)
+      .send({ anio: 2019, marca: 'VW', modelo: 'Jetta', vin: '1n4al3ap8jc123456', sucursalId: 2, socioId: 1 });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('Nissan');
+  });
+  test('POST normaliza el VIN a mayúsculas y busca por ese valor', async () => {
+    prisma.vehiculo.findFirst.mockClear();
+    prisma.vehiculo.create.mockClear();
+    prisma.vehiculo.findFirst.mockResolvedValue(null);
+    prisma.vehiculo.create.mockResolvedValue({ id: 11, marca: 'VW', sucursalId: 2 });
+    prisma.vehiculo.findUnique.mockResolvedValue({ id: 11, marca: 'VW', sucursalId: 2, fotos: [], gastos: [] });
+    const res = await request(app).post('/api/vehiculos').set('Authorization', `Bearer ${tokenAlmacen}`)
+      .send({ anio: 2019, marca: 'VW', modelo: 'Jetta', vin: ' abc123 ', sucursalId: 2, socioId: 1 });
+    expect(res.status).toBe(201);
+    expect(prisma.vehiculo.findFirst.mock.calls[0][0].where.vin).toBe('ABC123');
+    expect(prisma.vehiculo.create.mock.calls[0][0].data.vin).toBe('ABC123');
+  });
+  test('POST con VIN vacío se guarda como null y no valida unicidad', async () => {
+    prisma.vehiculo.findFirst.mockClear();
+    prisma.vehiculo.create.mockClear();
+    prisma.vehiculo.create.mockResolvedValue({ id: 12, marca: 'VW', sucursalId: 2 });
+    prisma.vehiculo.findUnique.mockResolvedValue({ id: 12, marca: 'VW', sucursalId: 2, fotos: [], gastos: [] });
+    const res = await request(app).post('/api/vehiculos').set('Authorization', `Bearer ${tokenAlmacen}`)
+      .send({ anio: 2019, marca: 'VW', modelo: 'Jetta', vin: '   ', sucursalId: 2, socioId: 1 });
+    expect(res.status).toBe(201);
+    expect(prisma.vehiculo.create.mock.calls[0][0].data.vin).toBeNull();
+    expect(prisma.vehiculo.findFirst).not.toHaveBeenCalled();
   });
 });
