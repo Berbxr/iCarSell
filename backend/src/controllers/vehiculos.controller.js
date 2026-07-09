@@ -8,7 +8,7 @@ const auditoria = require('../services/auditoria.service');
 const ESTADOS = ['EN_COMPRA', 'DISPONIBLE', 'RESERVADO', 'VENDIDO'];
 const CAMPOS = ['marca', 'modelo', 'color', 'placa', 'notas'];
 const SOCIO_SEL = { select: { id: true, nombre: true } };
-const INCLUDE_DETALLE = { fotos: { orderBy: { orden: 'asc' } }, gastos: true, venta: { select: { fecha: true } }, socio: SOCIO_SEL };
+const INCLUDE_DETALLE = { fotos: { orderBy: { orden: 'asc' } }, gastos: true, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL };
 
 function datosBase(body) {
   const data = {};
@@ -56,14 +56,14 @@ async function listar(req, res, next) {
         { vin: { contains: req.query.buscar, mode: 'insensitive' } },
       ];
     }
-    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, venta: { select: { fecha: true } }, socio: SOCIO_SEL } });
+    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL } });
     res.json(lista.map((v) => vistaVehiculo(v, req.usuario.rol)));
   } catch (e) { next(e); }
 }
 
 async function obtener(req, res, next) {
   try {
-    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { createdAt: 'asc' } }, venta: { select: { fecha: true } }, socio: SOCIO_SEL } });
+    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { createdAt: 'asc' } }, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL } });
     if (!v) throw new ApiError(404, 'Vehículo no encontrado');
     res.json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }
@@ -161,7 +161,7 @@ async function pasarAVenta(req, res, next) {
     if (!(Number(actual.precioVenta) > 0)) throw new ApiError(400, 'Debe capturar un precio de venta mayor a 0 antes de pasar a venta');
     if (actual.estado !== 'EN_COMPRA') throw new ApiError(409, 'El vehículo no está en el inventario de compra');
     await prisma.vehiculo.update({ where: { id }, data: { estado: 'DISPONIBLE', fechaPaseAVenta: new Date() } });
-    const v = await prisma.vehiculo.findUnique({ where: { id }, include: { gastos: true, venta: { select: { fecha: true } } } });
+    const v = await prisma.vehiculo.findUnique({ where: { id }, include: { gastos: true, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } } } });
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'PASAR_A_VENTA', entidad: 'Vehiculo', entidadId: id, ip: req.ip });
     res.json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }

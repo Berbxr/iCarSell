@@ -1,7 +1,7 @@
 const prisma = require('../config/prisma');
 const { ApiError } = require('../middlewares/error');
 const { resolverSucursalLectura } = require('../utils/alcance');
-const { crearVenta } = require('../services/ventas.service');
+const { crearVenta, cancelarVenta } = require('../services/ventas.service');
 const { generarContratoPDF } = require('../services/contrato.service');
 const auditoria = require('../services/auditoria.service');
 
@@ -39,9 +39,20 @@ async function crear(req, res, next) {
       empleadoId = u && u.empleadoId;
     }
     if (!empleadoId) throw new ApiError(400, 'empleadoId es obligatorio');
-    const venta = await crearVenta({ vehiculoId, clienteId, empleadoId, total, observaciones: req.body.observaciones, metodoPago: req.body.metodoPago });
-    await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'CREAR_VENTA', entidad: 'Venta', entidadId: venta.id, datos: { folio: venta.folio, total: venta.total }, ip: req.ip });
+    // El descuento (USD) solo lo aplica el ADMIN; para otros roles se ignora.
+    const descuento = req.usuario.rol === 'ADMIN' ? req.body.descuento : 0;
+    const venta = await crearVenta({ vehiculoId, clienteId, empleadoId, total, descuento, observaciones: req.body.observaciones, metodoPago: req.body.metodoPago });
+    await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'CREAR_VENTA', entidad: 'Venta', entidadId: venta.id, datos: { folio: venta.folio, total: venta.total, descuento: venta.descuento }, ip: req.ip });
     res.status(201).json(venta);
+  } catch (e) { next(e); }
+}
+
+// Cancela una venta (solo ADMIN, protegido en la ruta). Requiere motivo opcional.
+async function cancelar(req, res, next) {
+  try {
+    const venta = await cancelarVenta({ ventaId: Number(req.params.id), motivo: req.body.motivo });
+    await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'CANCELAR_VENTA', entidad: 'Venta', entidadId: venta.id, datos: { folio: venta.folio, total: venta.total, motivo: venta.motivoCancelacion }, ip: req.ip });
+    res.json(venta);
   } catch (e) { next(e); }
 }
 
@@ -81,4 +92,4 @@ async function contratoPdf(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { listar, obtener, crear, contratoBorrador, contratoPdf };
+module.exports = { listar, obtener, crear, cancelar, contratoBorrador, contratoPdf };

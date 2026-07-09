@@ -4,7 +4,7 @@ const { costoTotal } = require('../utils/costos');
 const { usdAMxn } = require('../utils/cambio');
 
 async function ventas({ sucursalId, desde, hasta, socioId, esAdmin }) {
-  const where = {};
+  const where = { estado: 'ACTIVA' };
   if (sucursalId !== undefined) where.sucursalId = sucursalId;
   if (socioId) where.vehiculo = { socioId: Number(socioId) };
   if (desde || hasta) {
@@ -56,7 +56,7 @@ async function inventario({ sucursalId }) {
 
 async function comisiones({ sucursalId, fecha }) {
   const { inicio, fin } = rangoSemana(fecha ? new Date(fecha) : new Date());
-  const where = { fecha: { gte: inicio, lte: fin } };
+  const where = { estado: 'ACTIVA', fecha: { gte: inicio, lte: fin } };
   if (sucursalId !== undefined) where.sucursalId = sucursalId;
   const lista = await prisma.venta.findMany({
     where, orderBy: { fecha: 'asc' },
@@ -79,17 +79,17 @@ async function comisiones({ sucursalId, fecha }) {
 async function socios({ desde, hasta, socioId }) {
   const config = await prisma.configuracion.findUnique({ where: { id: 1 } });
   const tipoCambio = config ? config.tipoCambioDolar || 0 : 0;
-  const where = { estado: 'VENDIDO', venta: { isNot: null } };
-  if (socioId) where.socioId = Number(socioId);
+  const filtroVenta = { estado: 'ACTIVA' };
   if (desde || hasta) {
-    where.venta = { ...where.venta };
-    where.venta.fecha = {};
-    if (desde) where.venta.fecha.gte = new Date(desde);
-    if (hasta) where.venta.fecha.lte = new Date(hasta);
+    filtroVenta.fecha = {};
+    if (desde) filtroVenta.fecha.gte = new Date(desde);
+    if (hasta) filtroVenta.fecha.lte = new Date(hasta);
   }
+  const where = { estado: 'VENDIDO', ventas: { some: filtroVenta } };
+  if (socioId) where.socioId = Number(socioId);
   const vehiculos = await prisma.vehiculo.findMany({
     where,
-    include: { gastos: true, socio: { select: { id: true, nombre: true } }, venta: { select: { fecha: true } } },
+    include: { gastos: true, socio: { select: { id: true, nombre: true } }, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } } },
   });
   const porSocio = new Map();
   const porMesMap = new Map();
@@ -101,8 +101,9 @@ async function socios({ desde, hasta, socioId }) {
     g.autos.push({ id: v.id, vehiculo: `${v.anio} ${v.marca} ${v.modelo}`, utilidadUsd });
     g.totalUsd += utilidadUsd;
     g.cantidad += 1;
-    if (v.venta?.fecha) {
-      const f = new Date(v.venta.fecha);
+    const ventaFecha = v.ventas?.[0]?.fecha;
+    if (ventaFecha) {
+      const f = new Date(ventaFecha);
       const mes = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
       porMesMap.set(mes, (porMesMap.get(mes) || 0) + utilidadUsd);
     }

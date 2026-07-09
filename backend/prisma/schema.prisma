@@ -32,6 +32,11 @@ enum Combustible {
   ELECTRICO
 }
 
+enum EstadoVenta {
+  ACTIVA
+  CANCELADA
+}
+
 enum MetodoPago {
   EFECTIVO
   TRANSFERENCIA
@@ -128,7 +133,7 @@ model Vehiculo {
   fechaIngreso DateTime       @default(now())
   fotos        VehiculoFoto[]
   gastos       GastoVehiculo[]
-  venta        Venta?
+  ventas       Venta[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 }
@@ -147,16 +152,20 @@ model Venta {
   folio         String   @unique
   sucursalId    Int
   sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
-  vehiculoId    Int      @unique
+  vehiculoId    Int
   vehiculo      Vehiculo @relation(fields: [vehiculoId], references: [id])
   clienteId     Int
   cliente       Cliente  @relation(fields: [clienteId], references: [id])
   empleadoId    Int
   empleado      Empleado @relation("ventasVendedor", fields: [empleadoId], references: [id])
   total         Float
+  descuento     Float    @default(0)
   comision      Float    @default(0)
   metodoPago    MetodoPago @default(EFECTIVO)
   observaciones String   @default("SIN GARANTÍA")
+  estado        EstadoVenta @default(ACTIVA)
+  canceladaEn   DateTime?
+  motivoCancelacion String?
   fecha         DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

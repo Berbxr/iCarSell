@@ -49,12 +49,12 @@ export default function Reportes() {
 
   function exportarCSV() {
     if (!ventas) return;
-    const filas = [['Folio', 'Fecha', 'Vehículo', 'Socio', 'Cliente', 'Vendedor', 'Total (USD)', 'Utilidad (USD)', 'Comisión (MXN)', 'Pago']];
+    const filas = [['Folio', 'Fecha', 'Vehículo', 'Socio', 'Cliente', 'Vendedor', 'Descuento (USD)', 'Total (USD)', 'Utilidad (USD)', 'Comisión (MXN)', 'Pago']];
     ventas.ventas.forEach((v) => filas.push([
       v.folio, new Date(v.fecha).toLocaleDateString('es-MX'),
       `${v.vehiculo?.anio} ${v.vehiculo?.marca} ${v.vehiculo?.modelo}`,
       v.vehiculo?.socio?.nombre || '', v.cliente?.nombre, `${v.empleado?.nombre || ''} ${v.empleado?.apellidos || ''}`,
-      v.total, utilidadVeh(v), v.comision ?? 0, v.metodoPago || '',
+      v.descuento ?? 0, v.total, utilidadVeh(v), v.comision ?? 0, v.metodoPago || '',
     ]));
     const csv = filas.map((f) => f.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -123,7 +123,7 @@ export default function Reportes() {
           <table>
             <thead><tr>
               <th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Socio</th><th>Cliente</th><th>Vendedor</th>
-              <th>Total (USD)</th><th>Utilidad (USD)</th><th>Comisión (MXN)</th><th>Pago</th>
+              <th>Descuento (USD)</th><th>Total (USD)</th><th>Utilidad (USD)</th><th>Comisión (MXN)</th><th>Pago</th>
             </tr></thead>
             <tbody>{ventas.ventas.map((v) => (
               <tr key={v.id}>
@@ -132,6 +132,7 @@ export default function Reportes() {
                 <td data-label="Socio">{v.vehiculo?.socio?.nombre || '—'}</td>
                 <td data-label="Cliente">{v.cliente?.nombre}</td>
                 <td data-label="Vendedor">{v.empleado?.nombre} {v.empleado?.apellidos}</td>
+                <td data-label="Descuento (USD)">{v.descuento > 0 ? money(v.descuento) : '—'}</td>
                 <td data-label="Total (USD)">{money(v.total)}</td>
                 <td data-label="Utilidad (USD)">{money(utilidadVeh(v))}</td>
                 <td data-label="Comisión (MXN)">{v.comision !== undefined ? money(v.comision) : '—'}</td>

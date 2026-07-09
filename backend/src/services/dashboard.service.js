@@ -15,7 +15,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
   const hace6Meses = new Date(ahora.getFullYear(), ahora.getMonth() - 5, 1);
 
   const ventas = await prisma.venta.findMany({
-    where: { ...whereSuc, fecha: { gte: hace6Meses } },
+    where: { ...whereSuc, estado: 'ACTIVA', fecha: { gte: hace6Meses } },
     select: { total: true, fecha: true, empleado: { select: { id: true, nombre: true, apellidos: true } } },
   });
 
@@ -63,7 +63,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
 
   // Último auto vendido.
   const ult = await prisma.venta.findFirst({
-    where: whereSuc,
+    where: { ...whereSuc, estado: 'ACTIVA' },
     orderBy: { fecha: 'desc' },
     include: {
       vehiculo: { select: { anio: true, marca: true, modelo: true } },
@@ -81,7 +81,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
   const tipoCambio = config ? config.tipoCambioDolar || 0 : 0;
 
   const ventasMesDetalle = await prisma.venta.findMany({
-    where: { ...whereSuc, fecha: { gte: mesDesde } },
+    where: { ...whereSuc, estado: 'ACTIVA', fecha: { gte: mesDesde } },
     include: { vehiculo: { include: { gastos: true, socio: { select: { id: true, nombre: true } } } } },
   });
 
