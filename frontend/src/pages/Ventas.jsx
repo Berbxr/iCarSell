@@ -166,20 +166,22 @@ export default function Ventas() {
         </div>
       )}
 
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th></th></tr></thead>
         <tbody>{ventas.map((v) => (
           <tr key={v.id}>
-            <td>{v.folio}</td>
-            <td>{new Date(v.fecha).toLocaleDateString('es-MX')}</td>
-            <td>{v.vehiculo?.anio} {v.vehiculo?.marca} {v.vehiculo?.modelo}</td>
-            <td>{v.cliente?.nombre}</td>
-            <td>{v.empleado ? `${v.empleado.nombre} ${v.empleado.apellidos}` : '—'}</td>
-            <td>${Number(v.total).toLocaleString('es-MX')}</td>
+            <td data-label="Folio">{v.folio}</td>
+            <td data-label="Fecha">{new Date(v.fecha).toLocaleDateString('es-MX')}</td>
+            <td data-label="Vehículo">{v.vehiculo?.anio} {v.vehiculo?.marca} {v.vehiculo?.modelo}</td>
+            <td data-label="Cliente">{v.cliente?.nombre}</td>
+            <td data-label="Vendedor">{v.empleado ? `${v.empleado.nombre} ${v.empleado.apellidos}` : '—'}</td>
+            <td data-label="Total">${Number(v.total).toLocaleString('es-MX')}</td>
             <td><button className="btn btn-sm" onClick={() => verContrato(v.id)}>Ver contrato</button></td>
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }

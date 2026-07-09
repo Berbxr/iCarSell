@@ -119,6 +119,7 @@ export default function Reportes() {
             <h3 style={{ flex: 1, margin: 0 }}>Detalle de ventas</h3>
             <button className="btn btn-sm" onClick={exportarCSV}>Exportar CSV</button>
           </div>
+          <div className="tabla-wrap">
           <table>
             <thead><tr>
               <th>Folio</th><th>Fecha</th><th>Vehículo</th><th>Socio</th><th>Cliente</th><th>Vendedor</th>
@@ -126,18 +127,19 @@ export default function Reportes() {
             </tr></thead>
             <tbody>{ventas.ventas.map((v) => (
               <tr key={v.id}>
-                <td>{v.folio}</td><td>{new Date(v.fecha).toLocaleDateString('es-MX')}</td>
-                <td>{v.vehiculo?.anio} {v.vehiculo?.marca} {v.vehiculo?.modelo}</td>
-                <td>{v.vehiculo?.socio?.nombre || '—'}</td>
-                <td>{v.cliente?.nombre}</td>
-                <td>{v.empleado?.nombre} {v.empleado?.apellidos}</td>
-                <td>{money(v.total)}</td>
-                <td>{money(utilidadVeh(v))}</td>
-                <td>{v.comision !== undefined ? money(v.comision) : '—'}</td>
-                <td>{v.metodoPago || '—'}</td>
+                <td data-label="Folio">{v.folio}</td><td data-label="Fecha">{new Date(v.fecha).toLocaleDateString('es-MX')}</td>
+                <td data-label="Vehículo">{v.vehiculo?.anio} {v.vehiculo?.marca} {v.vehiculo?.modelo}</td>
+                <td data-label="Socio">{v.vehiculo?.socio?.nombre || '—'}</td>
+                <td data-label="Cliente">{v.cliente?.nombre}</td>
+                <td data-label="Vendedor">{v.empleado?.nombre} {v.empleado?.apellidos}</td>
+                <td data-label="Total (USD)">{money(v.total)}</td>
+                <td data-label="Utilidad (USD)">{money(utilidadVeh(v))}</td>
+                <td data-label="Comisión (MXN)">{v.comision !== undefined ? money(v.comision) : '—'}</td>
+                <td data-label="Pago">{v.metodoPago || '—'}</td>
               </tr>
             ))}</tbody>
           </table>
+          </div>
         </>
       )}
 
@@ -147,45 +149,51 @@ export default function Reportes() {
           <div className="kpis">
             <div className="kpi"><h3>Total ganancia</h3><div className="valor">{money(socios.totalGeneralUsd)}<U m="USD" /></div><div className="sub">{money(socios.totalGeneralMxn)} MXN</div></div>
           </div>
+          <div className="tabla-wrap">
           <table>
             <thead><tr><th>Socio</th><th>Autos vendidos</th><th>Ganancia (USD)</th><th>Ganancia (MXN)</th></tr></thead>
             <tbody>{socios.socios.map((s) => (
               <tr key={s.socioId}>
-                <td>{s.nombre}</td><td>{s.cantidad}</td>
-                <td>{money(s.totalUsd)}</td>
-                <td>{money(s.totalMxn)}</td>
+                <td data-label="Socio">{s.nombre}</td><td data-label="Autos vendidos">{s.cantidad}</td>
+                <td data-label="Ganancia (USD)">{money(s.totalUsd)}</td>
+                <td data-label="Ganancia (MXN)">{money(s.totalMxn)}</td>
               </tr>
             ))}
             {socios.socios.length === 0 && <tr><td colSpan="4" style={{ color: 'var(--muted)' }}>Sin ventas en el periodo.</td></tr>}
             </tbody>
           </table>
+          </div>
 
           {socios.porMes.length > 0 && (
             <>
               <h3 style={{ marginTop: 18 }}>Ganancia por mes (general)</h3>
+              <div className="tabla-wrap">
               <table>
                 <thead><tr><th>Mes</th><th>Ganancia (USD)</th><th>Ganancia (MXN)</th></tr></thead>
                 <tbody>{socios.porMes.map((m) => (
-                  <tr key={m.mes}><td>{m.mes}</td><td>{money(m.utilidadUsd)}</td><td>{money(m.utilidadMxn)}</td></tr>
+                  <tr key={m.mes}><td data-label="Mes">{m.mes}</td><td data-label="Ganancia (USD)">{money(m.utilidadUsd)}</td><td data-label="Ganancia (MXN)">{money(m.utilidadMxn)}</td></tr>
                 ))}</tbody>
               </table>
+              </div>
             </>
           )}
 
           {socioId && socios.disponibles && socios.disponibles.length > 0 && (
             <>
               <h3 style={{ marginTop: 18 }}>Autos disponibles de este socio (sin vender)</h3>
+              <div className="tabla-wrap">
               <table>
                 <thead><tr><th>Vehículo</th><th>Precio venta (USD)</th><th>Utilidad potencial (USD)</th><th>Utilidad potencial (MXN)</th></tr></thead>
                 <tbody>{socios.disponibles.map((a) => (
                   <tr key={a.id}>
-                    <td>{a.vehiculo}</td>
-                    <td>{money(a.precioVenta)}</td>
-                    <td>{money(a.utilidadUsd)}</td>
-                    <td>{money(a.utilidadMxn)}</td>
+                    <td data-label="Vehículo">{a.vehiculo}</td>
+                    <td data-label="Precio venta (USD)">{money(a.precioVenta)}</td>
+                    <td data-label="Utilidad pot. (USD)">{money(a.utilidadUsd)}</td>
+                    <td data-label="Utilidad pot. (MXN)">{money(a.utilidadMxn)}</td>
                   </tr>
                 ))}</tbody>
               </table>
+              </div>
             </>
           )}
         </>
@@ -199,12 +207,14 @@ export default function Reportes() {
               <div className="kpi" key={estado} style={{ minWidth: 130 }}><h3>{estado}</h3><div className="valor">{n}</div></div>
             ))}
           </div>
+          <div className="tabla-wrap">
           <table>
             <thead><tr><th>Vehículo</th><th>Sucursal</th><th>Estado</th><th>Días en inventario</th></tr></thead>
             <tbody>{inventario.vehiculos.map((v) => (
-              <tr key={v.id}><td>{v.anio} {v.marca} {v.modelo}</td><td>{v.sucursal?.nombre}</td><td>{v.estado}</td><td>{v.dias}</td></tr>
+              <tr key={v.id}><td data-label="Vehículo">{v.anio} {v.marca} {v.modelo}</td><td data-label="Sucursal">{v.sucursal?.nombre}</td><td data-label="Estado">{v.estado}</td><td data-label="Días en inventario">{v.dias}</td></tr>
             ))}</tbody>
           </table>
+          </div>
         </>
       )}
     </div>

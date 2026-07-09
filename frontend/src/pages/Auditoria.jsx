@@ -8,15 +8,17 @@ export default function Auditoria() {
   return (
     <div>
       <h1>Auditoría</h1>
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>ID</th></tr></thead>
         <tbody>{lista.map((a) => (
           <tr key={a.id}>
-            <td>{new Date(a.fecha).toLocaleString('es-MX')}</td>
-            <td>{a.usuarioId}</td><td>{a.accion}</td><td>{a.entidad}</td><td>{a.entidadId ?? '—'}</td>
+            <td data-label="Fecha">{new Date(a.fecha).toLocaleString('es-MX')}</td>
+            <td data-label="Usuario">{a.usuarioId}</td><td data-label="Acción">{a.accion}</td><td data-label="Entidad">{a.entidad}</td><td data-label="ID">{a.entidadId ?? '—'}</td>
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }

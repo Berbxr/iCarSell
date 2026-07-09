@@ -161,17 +161,19 @@ export default function Compra() {
 
             <h4>Otros costos / gastos</h4>
             {!editId && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Guarda el auto para poder agregar gastos.</p>}
+            <div className="tabla-wrap">
             <table>
               <tbody>
                 {gastos.map((g) => (
                   <tr key={g.id}>
-                    <td>{g.descripcion}</td>
-                    <td>${num(g.monto).toLocaleString('es-MX')}</td>
+                    <td data-label="Descripción">{g.descripcion}</td>
+                    <td data-label="Monto">${num(g.monto).toLocaleString('es-MX')}</td>
                     <td><button type="button" className="btn btn-sm" onClick={() => quitarGasto(g)}>Quitar</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
             {editId && (
               <div className="row">
                 <input placeholder="Descripción" value={nuevoGasto.descripcion} onChange={(e) => setNuevoGasto((n) => ({ ...n, descripcion: e.target.value }))} />
@@ -198,21 +200,23 @@ export default function Compra() {
         </div>
       )}
 
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Vehículo</th><th>Sucursal</th><th>Socio</th><th>Precio venta</th><th>Costo total</th><th>Utilidad</th><th>Días en compra</th><th></th></tr></thead>
         <tbody>{lista.map((v) => (
           <tr key={v.id}>
-            <td>{v.anio} {v.marca} {v.modelo}</td>
-            <td>{v.sucursal?.nombre}</td>
-            <td>{v.socio?.nombre}</td>
-            <td>${num(v.precioVenta).toLocaleString('es-MX')}</td>
-            <td>{v.costoTotal != null ? `$${Number(v.costoTotal).toLocaleString('es-MX')}` : '—'}</td>
-            <td>{v.utilidad != null ? `$${Number(v.utilidad).toLocaleString('es-MX')}` : '—'}</td>
-            <td>{v.diasEnCompra != null ? v.diasEnCompra : '—'}</td>
+            <td data-label="Vehículo">{v.anio} {v.marca} {v.modelo}</td>
+            <td data-label="Sucursal">{v.sucursal?.nombre}</td>
+            <td data-label="Socio">{v.socio?.nombre}</td>
+            <td data-label="Precio venta">${num(v.precioVenta).toLocaleString('es-MX')}</td>
+            <td data-label="Costo total">{v.costoTotal != null ? `$${Number(v.costoTotal).toLocaleString('es-MX')}` : '—'}</td>
+            <td data-label="Utilidad">{v.utilidad != null ? `$${Number(v.utilidad).toLocaleString('es-MX')}` : '—'}</td>
+            <td data-label="Días en compra">{v.diasEnCompra != null ? v.diasEnCompra : '—'}</td>
             <td><button className="btn btn-sm" onClick={() => abrir(v.id)}>Abrir</button></td>
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }

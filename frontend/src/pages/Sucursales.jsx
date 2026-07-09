@@ -60,12 +60,13 @@ export default function Sucursales() {
         </form>
       </div>
 
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Nombre</th><th>Ciudad/Estado</th><th>Serie</th><th>Estado</th><th></th></tr></thead>
         <tbody>{lista.map((s) => (
           <tr key={s.id}>
-            <td>{s.nombre}</td><td>{s.ciudadEstado}</td><td>{s.serieFolio}</td>
-            <td>{s.activo ? 'Activa' : 'Inactiva'}</td>
+            <td data-label="Nombre">{s.nombre}</td><td data-label="Ciudad/Estado">{s.ciudadEstado}</td><td data-label="Serie">{s.serieFolio}</td>
+            <td data-label="Estado">{s.activo ? 'Activa' : 'Inactiva'}</td>
             <td className="row">
               <button className="btn btn-sm" onClick={() => editar(s)}>Editar</button>
               <button className="btn btn-sm" onClick={() => cambiarEstado(s)}>{s.activo ? 'Desactivar' : 'Activar'}</button>
@@ -73,6 +74,7 @@ export default function Sucursales() {
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }
