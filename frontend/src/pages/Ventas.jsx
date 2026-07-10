@@ -25,6 +25,7 @@ export default function Ventas() {
   const [sucursalId, setSucursalId] = useState(undefined);
   const [vehiculos, setVehiculos] = useState([]);
   const [vehiculoId, setVehiculoId] = useState('');
+  const [buscarVeh, setBuscarVeh] = useState('');
   const [empleados, setEmpleados] = useState([]);
   const [empleadoId, setEmpleadoId] = useState('');
   const [clientes, setClientes] = useState([]);
@@ -43,6 +44,12 @@ export default function Ventas() {
   const [descValor, setDescValor] = useState('');
 
   const total = Math.max(0, Math.round((precioLista - descuento) * 100) / 100);
+
+  // Filtro por VIN (o marca/modelo/año) sobre los vehículos disponibles ya cargados
+  const qVeh = buscarVeh.trim().toLowerCase();
+  const vehiculosFiltrados = qVeh
+    ? vehiculos.filter((v) => `${v.vin || ''} ${v.marca} ${v.modelo} ${v.anio}`.toLowerCase().includes(qVeh))
+    : vehiculos;
 
   async function cargarVentas() { const { data } = await api.get('/ventas'); setVentas(data); }
   useEffect(() => { cargarVentas(); }, []);
@@ -66,7 +73,7 @@ export default function Ventas() {
 
   function reset() {
     setMostrarForm(false); setVehiculoId(''); setClienteId(''); setNuevoCliente(false);
-    setCliente(CLIENTE_VACIO); setPrecioLista(0); setDescuento(0); setObservaciones('SIN GARANTÍA'); setMetodoPago('EFECTIVO'); setEmpleadoId(''); setError('');
+    setCliente(CLIENTE_VACIO); setPrecioLista(0); setDescuento(0); setObservaciones('SIN GARANTÍA'); setMetodoPago('EFECTIVO'); setEmpleadoId(''); setBuscarVeh(''); setError('');
   }
 
   function aplicarDescuento() {
@@ -135,10 +142,18 @@ export default function Ventas() {
           <form onSubmit={registrar} className="grid" style={{ maxWidth: 640 }}>
             <div><label>Sucursal (filtro)</label><SelectorSucursal value={sucursalId} onChange={setSucursalId} incluirTodas /></div>
             <div><label>Vehículo disponible</label>
+              <input
+                type="search"
+                placeholder="Buscar por VIN, marca, modelo o año…"
+                value={buscarVeh}
+                onChange={(e) => setBuscarVeh(e.target.value)}
+                style={{ marginBottom: 6 }}
+              />
               <select value={vehiculoId} onChange={(e) => elegirVehiculo(e.target.value)} required>
                 <option value="">Seleccione un vehículo…</option>
-                {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.anio} {v.marca} {v.modelo} — ${Number(v.precioVenta).toLocaleString('es-MX')}</option>)}
+                {vehiculosFiltrados.map((v) => <option key={v.id} value={v.id}>{v.anio} {v.marca} {v.modelo}{v.vin ? ` · VIN ${v.vin}` : ''} — ${Number(v.precioVenta).toLocaleString('es-MX')}</option>)}
               </select>
+              {qVeh && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{vehiculosFiltrados.length} de {vehiculos.length} vehículos</div>}
             </div>
             {usuario.rol === 'ADMIN' && (
               <div><label>Vendedor</label>
