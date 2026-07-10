@@ -6,13 +6,17 @@ const { vistaVehiculo } = require('../utils/costos');
 const auditoria = require('../services/auditoria.service');
 
 const ESTADOS = ['EN_COMPRA', 'DISPONIBLE', 'RESERVADO', 'VENDIDO'];
-const CAMPOS = ['marca', 'modelo', 'color', 'vin', 'placa', 'notas'];
+const CAMPOS = ['marca', 'modelo', 'color', 'placa', 'notas'];
 const SOCIO_SEL = { select: { id: true, nombre: true } };
-const INCLUDE_DETALLE = { fotos: { orderBy: { orden: 'asc' } }, gastos: true, venta: { select: { fecha: true } }, socio: SOCIO_SEL };
+const INCLUDE_DETALLE = { fotos: { orderBy: { orden: 'asc' } }, gastos: true, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL };
 
 function datosBase(body) {
   const data = {};
   for (const k of CAMPOS) if (body[k] !== undefined) data[k] = body[k];
+  if (body.vin !== undefined) {
+    const v = String(body.vin).trim().toUpperCase();
+    data.vin = v === '' ? null : v;
+  }
   if (body.anio !== undefined) data.anio = Number(body.anio);
   if (body.kilometraje !== undefined) data.kilometraje = body.kilometraje === '' || body.kilometraje == null ? null : Number(body.kilometraje);
   for (const k of ['precioCompra', 'comisionProveedor', 'transporte', 'registroPlacas', 'salidas']) {
@@ -23,6 +27,18 @@ function datosBase(body) {
   if (body.combustible !== undefined) data.combustible = body.combustible || null;
   if (body.socioId !== undefined) data.socioId = Number(body.socioId);
   return data;
+}
+
+async function validarVinUnico(vin, idExcluir) {
+  if (!vin) return;
+  const existente = await prisma.vehiculo.findFirst({
+    where: { vin, ...(idExcluir ? { id: { not: idExcluir } } : {}) },
+    include: { sucursal: { select: { nombre: true } } },
+  });
+  if (existente) {
+    throw new ApiError(409,
+      `El VIN ${vin} ya está registrado en ${existente.marca} ${existente.modelo} ${existente.anio} (sucursal ${existente.sucursal.nombre}).`);
+  }
 }
 
 async function listar(req, res, next) {
@@ -40,14 +56,14 @@ async function listar(req, res, next) {
         { vin: { contains: req.query.buscar, mode: 'insensitive' } },
       ];
     }
-    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, venta: { select: { fecha: true } }, socio: SOCIO_SEL } });
+    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL } });
     res.json(lista.map((v) => vistaVehiculo(v, req.usuario.rol)));
   } catch (e) { next(e); }
 }
 
 async function obtener(req, res, next) {
   try {
-    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { createdAt: 'asc' } }, venta: { select: { fecha: true } }, socio: SOCIO_SEL } });
+    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { createdAt: 'asc' } }, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL } });
     if (!v) throw new ApiError(404, 'Vehículo no encontrado');
     res.json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }
@@ -60,6 +76,7 @@ async function crear(req, res, next) {
     if (!req.body.socioId) throw new ApiError(400, 'El socio es obligatorio');
     const sucursalId = resolverSucursalEscritura(req, req.body.sucursalId);
     const data = { ...datosBase(req.body), sucursalId, estado: 'EN_COMPRA' };
+    await validarVinUnico(data.vin, null);
     // Comprimir y escribir las fotos a disco ANTES de la transacción (trabajo pesado fuera de la BD).
     const rutas = Array.isArray(req.body.fotos) ? await procesarEntradas(req.body.fotos) : [];
     const v = await prisma.$transaction(async (tx) => {
@@ -76,6 +93,7 @@ async function actualizar(req, res, next) {
   try {
     const id = Number(req.params.id);
     const data = datosBase(req.body);
+    if (data.vin !== undefined) await validarVinUnico(data.vin, id);
     if (req.body.sucursalId !== undefined) data.sucursalId = resolverSucursalEscritura(req, req.body.sucursalId);
 
     let rutas; let aBorrar = [];
@@ -143,10 +161,25 @@ async function pasarAVenta(req, res, next) {
     if (!(Number(actual.precioVenta) > 0)) throw new ApiError(400, 'Debe capturar un precio de venta mayor a 0 antes de pasar a venta');
     if (actual.estado !== 'EN_COMPRA') throw new ApiError(409, 'El vehículo no está en el inventario de compra');
     await prisma.vehiculo.update({ where: { id }, data: { estado: 'DISPONIBLE', fechaPaseAVenta: new Date() } });
-    const v = await prisma.vehiculo.findUnique({ where: { id }, include: { gastos: true, venta: { select: { fecha: true } } } });
+    const v = await prisma.vehiculo.findUnique({ where: { id }, include: { gastos: true, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } } } });
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'PASAR_A_VENTA', entidad: 'Vehiculo', entidadId: id, ip: req.ip });
     res.json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }
 }
 
-module.exports = { listar, obtener, crear, actualizar, cambiarEstado, agregarGasto, eliminarGasto, pasarAVenta };
+async function vinExiste(req, res, next) {
+  try {
+    const vin = String(req.query.vin || '').trim().toUpperCase();
+    const excluir = req.query.excluir ? Number(req.query.excluir) : null;
+    if (!vin) return res.json({ existe: false });
+    const v = await prisma.vehiculo.findFirst({
+      where: { vin, ...(excluir ? { id: { not: excluir } } : {}) },
+      include: { sucursal: { select: { nombre: true } } },
+    });
+    res.json(v
+      ? { existe: true, descripcion: `${v.marca} ${v.modelo} ${v.anio} (${v.sucursal.nombre})` }
+      : { existe: false });
+  } catch (e) { next(e); }
+}
+
+module.exports = { listar, obtener, crear, actualizar, cambiarEstado, agregarGasto, eliminarGasto, pasarAVenta, vinExiste };

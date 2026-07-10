@@ -55,17 +55,19 @@ export default function Gastos() {
         ))}
       </div>
 
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th><th></th></tr></thead>
         <tbody>{data.gastos.map((g) => (
           <tr key={g.id}>
-            <td>{new Date(g.fecha).toLocaleDateString('es-MX')}</td>
-            <td>{g.categoria}</td><td>{g.descripcion}</td>
-            <td>${Number(g.monto).toLocaleString('es-MX')}</td>
+            <td data-label="Fecha">{new Date(g.fecha).toLocaleDateString('es-MX')}</td>
+            <td data-label="Categoría">{g.categoria}</td><td data-label="Descripción">{g.descripcion}</td>
+            <td data-label="Monto">${Number(g.monto).toLocaleString('es-MX')}</td>
             <td><button className="btn btn-sm" onClick={() => eliminar(g)}>Eliminar</button></td>
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }

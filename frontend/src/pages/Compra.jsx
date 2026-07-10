@@ -23,6 +23,7 @@ export default function Compra() {
   const [nuevoGasto, setNuevoGasto] = useState({ descripcion: '', monto: '' });
   const [mostrarForm, setMostrarForm] = useState(false);
   const [error, setError] = useState('');
+  const [vinAviso, setVinAviso] = useState('');
   const [socios, setSocios] = useState([]);
   const [filtroSocio, setFiltroSocio] = useState('');
 
@@ -46,18 +47,30 @@ export default function Compra() {
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
 
+  async function verificarVin() {
+    const vin = (form.vin || '').trim();
+    if (!vin) { setVinAviso(''); return; }
+    try {
+      const params = new URLSearchParams({ vin });
+      if (editId) params.set('excluir', String(editId));
+      const { data } = await api.get(`/vehiculos/vin-existe?${params.toString()}`);
+      setVinAviso(data.existe ? `Este VIN ya está registrado en ${data.descripcion}` : '');
+    } catch { setVinAviso(''); }
+  }
+
   const puestoEnMexico = num(form.precioCompra) + num(form.comisionProveedor) + num(form.transporte) + num(form.registroPlacas) + num(form.salidas);
   const totalGastos = gastos.reduce((a, g) => a + num(g.monto), 0);
   const costoTotal = puestoEnMexico + totalGastos;
   const utilidad = num(form.precioVenta) - costoTotal;
 
-  function nuevo() { setEditId(null); setForm(VACIO); setGastos([]); setMostrarForm(true); }
+  function nuevo() { setEditId(null); setForm(VACIO); setGastos([]); setVinAviso(''); setMostrarForm(true); }
 
   async function abrir(id) {
     const { data } = await api.get(`/vehiculos/${id}`);
     setEditId(id);
     setForm({ ...VACIO, ...data, transmision: data.transmision || '', combustible: data.combustible || '', fotos: (data.fotos || []).map((f) => urlFoto(f.data)) });
     setGastos(data.gastos || []);
+    setVinAviso('');
     setMostrarForm(true);
   }
 
@@ -118,7 +131,13 @@ export default function Compra() {
               <div style={{ flex: 1 }}><label>Color</label><input value={form.color || ''} onChange={(e) => set('color', e.target.value)} /></div>
             </div>
             <div className="row">
-              <div style={{ flex: 1 }}><label>VIN</label><input value={form.vin || ''} maxLength={17} onChange={(e) => set('vin', e.target.value)} /></div>
+              <div style={{ flex: 1 }}>
+                <label>VIN</label>
+                <input value={form.vin || ''} maxLength={17}
+                  onChange={(e) => { set('vin', e.target.value); if (vinAviso) setVinAviso(''); }}
+                  onBlur={verificarVin} />
+                {vinAviso && <div style={{ color: '#c0392b', fontSize: 12, marginTop: 4 }}>{vinAviso}</div>}
+              </div>
               <div style={{ flex: 1 }}><label>Placa</label><input value={form.placa || ''} onChange={(e) => set('placa', e.target.value)} /></div>
               <div style={{ flex: 1 }}><label>Kilometraje</label><input type="number" value={form.kilometraje || ''} onChange={(e) => set('kilometraje', e.target.value)} /></div>
               <div style={{ flex: 1 }}><label>Sucursal</label><SelectorSucursal value={form.sucursalId} onChange={(v) => set('sucursalId', v)} /></div>
@@ -142,17 +161,19 @@ export default function Compra() {
 
             <h4>Otros costos / gastos</h4>
             {!editId && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Guarda el auto para poder agregar gastos.</p>}
+            <div className="tabla-wrap">
             <table>
               <tbody>
                 {gastos.map((g) => (
                   <tr key={g.id}>
-                    <td>{g.descripcion}</td>
-                    <td>${num(g.monto).toLocaleString('es-MX')}</td>
+                    <td data-label="Descripción">{g.descripcion}</td>
+                    <td data-label="Monto">${num(g.monto).toLocaleString('es-MX')}</td>
                     <td><button type="button" className="btn btn-sm" onClick={() => quitarGasto(g)}>Quitar</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
             {editId && (
               <div className="row">
                 <input placeholder="Descripción" value={nuevoGasto.descripcion} onChange={(e) => setNuevoGasto((n) => ({ ...n, descripcion: e.target.value }))} />
@@ -179,21 +200,23 @@ export default function Compra() {
         </div>
       )}
 
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Vehículo</th><th>Sucursal</th><th>Socio</th><th>Precio venta</th><th>Costo total</th><th>Utilidad</th><th>Días en compra</th><th></th></tr></thead>
         <tbody>{lista.map((v) => (
           <tr key={v.id}>
-            <td>{v.anio} {v.marca} {v.modelo}</td>
-            <td>{v.sucursal?.nombre}</td>
-            <td>{v.socio?.nombre}</td>
-            <td>${num(v.precioVenta).toLocaleString('es-MX')}</td>
-            <td>{v.costoTotal != null ? `$${Number(v.costoTotal).toLocaleString('es-MX')}` : '—'}</td>
-            <td>{v.utilidad != null ? `$${Number(v.utilidad).toLocaleString('es-MX')}` : '—'}</td>
-            <td>{v.diasEnCompra != null ? v.diasEnCompra : '—'}</td>
+            <td data-label="Vehículo">{v.anio} {v.marca} {v.modelo}</td>
+            <td data-label="Sucursal">{v.sucursal?.nombre}</td>
+            <td data-label="Socio">{v.socio?.nombre}</td>
+            <td data-label="Precio venta">${num(v.precioVenta).toLocaleString('es-MX')}</td>
+            <td data-label="Costo total">{v.costoTotal != null ? `$${Number(v.costoTotal).toLocaleString('es-MX')}` : '—'}</td>
+            <td data-label="Utilidad">{v.utilidad != null ? `$${Number(v.utilidad).toLocaleString('es-MX')}` : '—'}</td>
+            <td data-label="Días en compra">{v.diasEnCompra != null ? v.diasEnCompra : '—'}</td>
             <td><button className="btn btn-sm" onClick={() => abrir(v.id)}>Abrir</button></td>
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }

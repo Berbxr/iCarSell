@@ -34,13 +34,23 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const rol = usuario?.rol;
   const [tc, setTc] = useState(null);
+  const [menuAbierto, setMenuAbierto] = useState(false);
   useEffect(() => { api.get('/configuracion').then((r) => setTc(r.data.tipoCambioDolar)).catch(() => {}); }, []);
+
+  // Cerrar el cajón con la tecla Escape.
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuAbierto(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuAbierto]);
 
   function salir() { logout(); navigate('/login'); }
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      {menuAbierto && <button className="nav-overlay" aria-label="Cerrar menú" onClick={() => setMenuAbierto(false)} />}
+      <aside className={`sidebar${menuAbierto ? ' abierto' : ''}`}>
         <div className="brand">
           <img src={logo || '/logo.svg'} alt={nombre} className="brand-logo" />
           <div className="brand-name">{nombre}</div>
@@ -53,7 +63,7 @@ export default function Layout({ children }) {
               <div key={gi}>
                 {g.label && <div className="nav-group-label">{g.label}</div>}
                 {items.map((it) => (
-                  <NavLink key={it.to} to={it.to} className={({ isActive }) => (isActive ? 'active' : '')}>{it.label}</NavLink>
+                  <NavLink key={it.to} to={it.to} onClick={() => setMenuAbierto(false)} className={({ isActive }) => (isActive ? 'active' : '')}>{it.label}</NavLink>
                 ))}
               </div>
             );
@@ -66,7 +76,7 @@ export default function Layout({ children }) {
       </aside>
       <div className="main">
         <div className="topbar">
-          <div />
+          <button className="menu-btn" aria-label="Abrir menú" onClick={() => setMenuAbierto(true)}>☰</button>
           <div className="tc-header">Dólar: {tc ? `$${Number(tc).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN` : 'sin configurar'}</div>
         </div>
         <div className="content">{children}</div>

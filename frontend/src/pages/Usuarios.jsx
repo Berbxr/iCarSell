@@ -76,13 +76,14 @@ export default function Usuarios() {
         </form>
       </div>
 
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Usuario</th><th>Rol</th><th>Empleado</th><th>Estado</th><th></th></tr></thead>
         <tbody>{lista.map((u) => (
           <tr key={u.id}>
-            <td>{u.username}</td><td>{u.rol}</td>
-            <td>{u.empleado ? `${u.empleado.nombre} ${u.empleado.apellidos}` : '—'}</td>
-            <td>{u.activo ? 'Activo' : 'Inactivo'}</td>
+            <td data-label="Usuario">{u.username}</td><td data-label="Rol">{u.rol}</td>
+            <td data-label="Empleado">{u.empleado ? `${u.empleado.nombre} ${u.empleado.apellidos}` : '—'}</td>
+            <td data-label="Estado">{u.activo ? 'Activo' : 'Inactivo'}</td>
             <td className="row">
               <button className="btn btn-sm" onClick={() => cambiarEstado(u)}>{u.activo ? 'Desactivar' : 'Activar'}</button>
               <button className="btn btn-sm" onClick={() => resetPassword(u)}>Restablecer</button>
@@ -90,6 +91,7 @@ export default function Usuarios() {
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }
