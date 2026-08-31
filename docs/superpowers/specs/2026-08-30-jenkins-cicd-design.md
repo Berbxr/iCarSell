@@ -72,6 +72,16 @@ abajo); no hay overlay de producción distinto al de desarrollo.
   ```
   Esto no rompe el desarrollo local (`127.0.0.1` sigue siendo accesible
   desde la misma máquina), tal cual está documentado en el README.
+
+Segunda corrección, durante la prueba end-to-end: el diseño original hacía
+que el contenedor de Jenkins corriera como usuario `jenkins` (no-root),
+agregado al grupo del socket de Docker. El primer build del pipeline falló
+con `Permission denied` al hacer `cd /root/apps/iCarSell`: `/root` en el
+host tiene permisos `700`, así que ningún usuario no-root puede atravesarlo
+sin importar el grupo del socket. Se corrigió dejando el proceso de Jenkins
+como `root` dentro de su contenedor — quien ya controla el socket de Docker
+tiene control equivalente a root del host de todas formas, así que esto no
+reduce la seguridad real.
 - En el VPS: descartar el diff local de `docker-compose.yml`
   (`git checkout -- docker-compose.yml`), cambiar a `master`
   (`git checkout master && git pull origin master`).

@@ -20,6 +20,7 @@
 - Nombre de proyecto Docker Compose fijo: `icarsell` (flag `-p icarsell`) en todo comando de despliegue.
 - **Nunca** escribir la contraseña root del VPS ni la contraseña de Jenkins en archivos versionados en git. Los scripts leen la contraseña del VPS desde la variable de entorno `VPS_SSH_PASSWORD`, que quien ejecute el plan debe exportar en su propia sesión (la contraseña ya fue compartida por el usuario en la conversación de brainstorming).
 - Ya existe un respaldo de la base de datos de producción, tomado antes de esta implementación: `backups/icarsell_backup_20260831_015556.sql` (local) y `/root/backups/icarsell/` (VPS). Si algo sale mal, restaurar con `docker exec -i icarsell-db psql -U <usuario> -d <db> < <archivo>.sql`.
+- Si se ejecuta desde Git Bash en Windows: exportar `MSYS_NO_PATHCONV=1` antes de llamar `.ops/ssh_exec.py` o `.ops/sftp_put.py` con rutas Unix absolutas como argumento — de lo contrario Git Bash las reescribe a rutas de Windows y el comando remoto/la subida falla con "No such file".
 
 ---
 
@@ -398,7 +399,7 @@ jobs:
           }
         }
         triggers {
-          pollSCM('H/2 * * * *')
+          scm('H/2 * * * *')
         }
       }
 ```
@@ -406,6 +407,15 @@ jobs:
 - [ ] **Step 3: Crear el `Dockerfile`**
 
 Crear `C:\Proyectos\iCarSell\.ops\jenkins\Dockerfile`:
+
+> **Nota de corrección:** el diseño original agregaba `jenkins` a un grupo
+> con el GID del socket de Docker y volvía a `USER jenkins` al final. Al
+> probar el pipeline, `cd /root/apps/iCarSell` falló con "Permission
+> denied": `/root` en el host tiene permisos `700`, así que un usuario no-root
+> dentro del contenedor no puede ni atravesarlo, sin importar el grupo del
+> socket. Se corrigió dejando el proceso como `root` dentro del contenedor
+> (quien ya controla el socket de Docker tiene control equivalente a root
+> del host de todas formas, así que esto no reduce la seguridad real).
 
 ```dockerfile
 FROM jenkins/jenkins:lts-jdk21
@@ -423,10 +433,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       docker-ce-cli docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
-ARG DOCKER_GID=999
-RUN groupadd -g ${DOCKER_GID} docker-host \
-    && usermod -aG docker-host jenkins
-
 COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
 RUN jenkins-plugin-cli --plugin-file /usr/share/jenkins/ref/plugins.txt
 
@@ -434,8 +440,6 @@ COPY casc.yaml /usr/share/jenkins/casc.yaml
 
 ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=false"
 ENV CASC_JENKINS_CONFIG="/usr/share/jenkins/casc.yaml"
-
-USER jenkins
 ```
 
 - [ ] **Step 4: Crear el `docker-compose.yml` de Jenkins**
@@ -447,8 +451,6 @@ services:
   jenkins:
     build:
       context: .
-      args:
-        DOCKER_GID: ${DOCKER_GID}
     container_name: icarsell-jenkins
     restart: unless-stopped
     environment:

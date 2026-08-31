@@ -39,4 +39,4 @@ npm test                    # corre la suite (Jest + Supertest)
 
 ## CI/CD
 
-Los cambios en `master` se despliegan automáticamente en producción vía Jenkins (poll cada ~2 min).
+Los cambios en `master` se despliegan automáticamente en producción vía Jenkins (poll cada ~2 min, contenedor en el propio VPS).
