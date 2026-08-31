@@ -50,6 +50,20 @@ describe('GET /api/vehiculos visibilidad', () => {
     const arg = prisma.vehiculo.findMany.mock.calls[0][0];
     expect(arg.where.estado).toEqual({ in: ['DISPONIBLE', 'RESERVADO', 'VENDIDO'] });
   });
+
+  test('filtro ?inventario=venta&estado=DISPONIBLE filtra solo disponibles', async () => {
+    prisma.vehiculo.findMany.mockResolvedValue([]);
+    await request(app).get('/api/vehiculos?inventario=venta&estado=DISPONIBLE').set('Authorization', `Bearer ${tokenAdmin}`);
+    const arg = prisma.vehiculo.findMany.mock.calls[0][0];
+    expect(arg.where.estado).toBe('DISPONIBLE');
+  });
+
+  test('filtro ?inventario=venta&estado=VENDIDO filtra solo vendidos', async () => {
+    prisma.vehiculo.findMany.mockResolvedValue([]);
+    await request(app).get('/api/vehiculos?inventario=venta&estado=VENDIDO').set('Authorization', `Bearer ${tokenAdmin}`);
+    const arg = prisma.vehiculo.findMany.mock.calls[0][0];
+    expect(arg.where.estado).toBe('VENDIDO');
+  });
   test('VENDEDOR ve todas las sucursales (no se fuerza la suya)', async () => {
     prisma.vehiculo.findMany.mockResolvedValue([]);
     await request(app).get('/api/vehiculos?inventario=venta').set('Authorization', `Bearer ${tokenVend}`);

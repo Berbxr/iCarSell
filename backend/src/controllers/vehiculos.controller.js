@@ -46,9 +46,13 @@ async function listar(req, res, next) {
     const where = {};
     if (req.query.sucursalId) where.sucursalId = Number(req.query.sucursalId);
     if (req.query.socioId) where.socioId = Number(req.query.socioId);
+    const ESTADOS_VENTA = ['DISPONIBLE', 'RESERVADO', 'VENDIDO'];
     if (req.query.inventario === 'compra') where.estado = 'EN_COMPRA';
-    else if (req.query.inventario === 'venta') where.estado = { in: ['DISPONIBLE', 'RESERVADO', 'VENDIDO'] };
-    else if (req.query.estado && ESTADOS.includes(req.query.estado)) where.estado = req.query.estado;
+    else if (req.query.inventario === 'venta') {
+      where.estado = (req.query.estado && ESTADOS_VENTA.includes(req.query.estado))
+        ? req.query.estado
+        : { in: ESTADOS_VENTA };
+    } else if (req.query.estado && ESTADOS.includes(req.query.estado)) where.estado = req.query.estado;
     if (req.query.buscar) {
       where.OR = [
         { marca: { contains: req.query.buscar, mode: 'insensitive' } },
