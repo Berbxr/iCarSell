@@ -36,3 +36,7 @@ npm test                    # corre la suite (Jest + Supertest)
 - Frontend (nginx): `8082`
 - PostgreSQL: `5437`
 - Backend (interno): `4000`
+
+## CI/CD
+
+Los cambios en `master` se despliegan automáticamente en producción vía Jenkins (poll cada ~2 min).
