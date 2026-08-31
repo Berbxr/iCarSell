@@ -44,12 +44,23 @@ los datos de producción.
   usuario pese a la alternativa nativa (más simple para el socket de
   Docker) que se le presentó como opción.
 
+## Corrección durante implementación (2026-08-31)
+
+Un review de seguridad automático sobre el commit del overlay detectó que
+**Docker Compose fusiona la lista `ports` de forma aditiva** entre archivos
+`-f`, no la reemplaza: el `docker-compose.prod.yml` original no anulaba el
+binding a `0.0.0.0` del archivo base, solo agregaba uno adicional a
+`127.0.0.1` — el servicio quedaba expuesto en ambos, es decir, el hardening
+no protegía nada. Se corrigió eliminando el overlay y aplicando el binding
+a `127.0.0.1` directo en `docker-compose.yml` base (sección 1 actualizada
+abajo); no hay overlay de producción distinto al de desarrollo.
+
 ## Arquitectura
 
 ### 1. Saneamiento del repo en el VPS (antes de Jenkins)
 
-- Nuevo archivo **`docker-compose.prod.yml`** en el repo (comiteado), overlay
-  que expresa el hardening de puertos:
+- El hardening de puertos vive directo en **`docker-compose.yml`** (un solo
+  archivo, sin overlay — ver corrección arriba):
   ```yaml
   services:
     db:
@@ -59,15 +70,15 @@ los datos de producción.
       ports:
         - "127.0.0.1:${HTTP_PORT:-8082}:80"
   ```
-  `docker-compose.yml` base no cambia (sigue sirviendo para desarrollo local
-  tal cual está documentado en el README).
+  Esto no rompe el desarrollo local (`127.0.0.1` sigue siendo accesible
+  desde la misma máquina), tal cual está documentado en el README.
 - En el VPS: descartar el diff local de `docker-compose.yml`
   (`git checkout -- docker-compose.yml`), cambiar a `master`
   (`git checkout master && git pull origin master`).
 - Mover `icarsell_backup*.sql` y `backups/` fuera del repo (ya se movieron a
   `/root/backups/icarsell/`); agregar `backups/` y `*.sql` a `.gitignore`.
 - Redeploy manual de verificación:
-  `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`
+  `docker compose -p icarsell up -d --build`
   y confirmar que el sitio sigue respondiendo en `https://empalmemotors.com`
   antes de tocar Jenkins.
 
@@ -105,8 +116,8 @@ del usuario, luego `http://localhost:8080`.
   git fetch origin master
   git checkout master
   git reset --hard origin/master
-  docker compose -p icarsell -f docker-compose.yml -f docker-compose.prod.yml build
-  docker compose -p icarsell -f docker-compose.yml -f docker-compose.prod.yml up -d
+  docker compose -p icarsell build
+  docker compose -p icarsell up -d
   docker image prune -f
   ```
   El nombre de proyecto explícito (`-p icarsell`) evita ambigüedad frente al
