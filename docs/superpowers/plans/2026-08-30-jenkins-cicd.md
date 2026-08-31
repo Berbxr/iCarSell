@@ -16,7 +16,7 @@
 - App en el VPS vive en `/root/apps/iCarSell` (git, remoto `origin` = `https://github.com/Berbxr/iCarSell.git`).
 - Rama de despliegue: `master` únicamente.
 - Jenkins expuesto **solo** en `127.0.0.1:8080` del VPS (acceso vía túnel SSH: `ssh -L 8080:localhost:8080 root@74.208.32.129`). Nunca publicar Jenkins en `ufw` ni en Nginx.
-- Trigger de despliegue: `pollSCM('H/2 * * * *')` (poll cada ~2 min). Sin webhook público.
+- Trigger de despliegue: `cron('H/2 * * * *')` (build incondicional cada ~2 min; ver nota de corrección en Task 3 — el poll con detección de cambios resultó poco fiable). Sin webhook público.
 - Nombre de proyecto Docker Compose fijo: `icarsell` (flag `-p icarsell`) en todo comando de despliegue.
 - **Nunca** escribir la contraseña root del VPS ni la contraseña de Jenkins en archivos versionados en git. Los scripts leen la contraseña del VPS desde la variable de entorno `VPS_SSH_PASSWORD`, que quien ejecute el plan debe exportar en su propia sesión (la contraseña ya fue compartida por el usuario en la conversación de brainstorming).
 - Ya existe un respaldo de la base de datos de producción, tomado antes de esta implementación: `backups/icarsell_backup_20260831_015556.sql` (local) y `/root/backups/icarsell/` (VPS). Si algo sale mal, restaurar con `docker exec -i icarsell-db psql -U <usuario> -d <db> < <archivo>.sql`.
@@ -213,7 +213,7 @@ pipeline {
   }
 
   triggers {
-    pollSCM('H/2 * * * *')
+    cron('H/2 * * * *')
   }
 
   stages {
@@ -399,7 +399,7 @@ jobs:
           }
         }
         triggers {
-          scm('H/2 * * * *')
+          cron('H/2 * * * *')
         }
       }
 ```

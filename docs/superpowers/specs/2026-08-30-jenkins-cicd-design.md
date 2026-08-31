@@ -82,6 +82,8 @@ sin importar el grupo del socket. Se corrigió dejando el proceso de Jenkins
 como `root` dentro de su contenedor — quien ya controla el socket de Docker
 tiene control equivalente a root del host de todas formas, así que esto no
 reduce la seguridad real.
+
+Tercera corrección: el trigger `pollSCM`/`scm()` (detección de cambios) resultó poco fiable en este entorno — Jenkins actualizaba su "baseline" de commit sin encolar el build de forma consistente tras el primer poll. Se cambió a un trigger `cron('H/2 * * * *')` incondicional: corre cada ~2 min sin importar si hay cambios; el `Jenkinsfile` ya es idempotente (`git reset --hard` + `docker compose build/up -d` no hacen nada si no hay diferencias), así que el costo es solo unos segundos de CPU cada 2 minutos.
 - En el VPS: descartar el diff local de `docker-compose.yml`
   (`git checkout -- docker-compose.yml`), cambiar a `master`
   (`git checkout master && git pull origin master`).
@@ -118,7 +120,8 @@ del usuario, luego `http://localhost:8080`.
 ### 3. Pipeline (`Jenkinsfile` en la raíz del repo de iCarSell)
 
 - Job tipo "Pipeline script from SCM" apuntando a `origin/master`.
-- Trigger: `pollSCM('H/2 * * * *')` (cada ~2 minutos).
+- Trigger: `cron('H/2 * * * *')` (cada ~2 minutos, incondicional — ver
+  corrección arriba).
 - `options { disableConcurrentBuilds() }` para evitar despliegues solapados.
 - Etapa única `Deploy`:
   ```bash
