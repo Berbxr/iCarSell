@@ -5,9 +5,10 @@ pipeline {
     disableConcurrentBuilds()
   }
 
-  triggers {
-    cron('H/2 * * * *')
-  }
+  // El trigger del webhook (Generic Webhook Trigger, con token) se configura
+  // directo en el job vía Job-DSL/JCasC en el VPS (.ops/jenkins/casc.yaml),
+  // no aquí, porque este archivo vive en un repo público y el token no debe
+  // quedar expuesto en el historial de git.
 
   stages {
     stage('Deploy') {

@@ -28,6 +28,35 @@ iniciar cualquier cambio: `backups/icarsell_backup_20260831_015556.sql`
 (local, en `C:\Proyectos\iCarSell\backups\`, y también en el VPS en
 `/root/backups/icarsell/`, ambos fuera del control de git).
 
+## Actualización (2026-08-31): webhook en vez de cron
+
+Tras desplegar la v1 (cron incondicional cada 2 min), el usuario señaló —con
+razón— que un cron corriendo indefinidamente desperdicia recursos cuando el
+objetivo real es "avisa solo cuando hay push". Se reemplazó por un webhook:
+
+- Se agregó una ruta angosta en el **Nginx público existente**
+  (`empalmemotors.com`, mismo certificado, sin DNS/Certbot nuevo):
+  `location = /generic-webhook-trigger/invoke { proxy_pass http://127.0.0.1:8080/generic-webhook-trigger/invoke; ... }`.
+  El resto de Jenkins (panel, API, todo lo demás) sigue solo en loopback.
+- Plugin **Generic Webhook Trigger** (se probó primero `/git/notifyCommit`
+  del plugin `git`, pero exige un "access token" propio con un mecanismo
+  más rígido; Generic Webhook Trigger es más simple y directo).
+- El trigger (`genericTrigger { token(...) }`) se configura **en el
+  Job-DSL de `casc.yaml`, no en el `Jenkinsfile`** — el repo de iCarSell es
+  público en GitHub, así que un token embebido ahí quedaría visible a
+  cualquiera en el historial de git. El `Jenkinsfile` solo trae un
+  comentario explicando dónde vive el trigger.
+- `authorizationStrategy.loggedInUsersCanDoAnything.allowAnonymousRead` se
+  puso en `true` (antes `false`): el endpoint del webhook necesita ser
+  alcanzable sin sesión. El panel real de Jenkins sigue sin exposición
+  pública (solo loopback), así que esto no abre el dashboard a internet.
+- GitHub Webhook a configurar manualmente por el usuario (Settings →
+  Webhooks → Add webhook) en `github.com/Berbxr/iCarSell`: Payload URL
+  `https://empalmemotors.com/generic-webhook-trigger/invoke?token=<token>`,
+  Content type `application/json`, evento "Just the push event".
+- Verificado: build disparado con causa `"Disparado por push a GitHub
+  (webhook)"`, `result=SUCCESS`.
+
 ## Objetivo
 
 Que cada push a `master` en GitHub se despliegue solo en el VPS, sin

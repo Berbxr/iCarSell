@@ -658,3 +658,62 @@ Job-DSL sigue apareciendo en el log de arranque; no es bloqueante (el job se
 crea y el trigger funciona), pero si una futura versión de Job-DSL elimina
 el soporte, la creación del job tendría que moverse a un Job DSL "seed job"
 clásico en vez de la clave `jobs:` de JCasC.
+
+---
+
+## Actualización post-implementación: webhook en vez de cron (2026-08-31)
+
+El usuario pidió reemplazar el cron incondicional (Task 3/6, "Resultado real"
+arriba) por un webhook de GitHub, para no gastar recursos cada 2 min sin
+necesidad. Cambios aplicados (detalle completo en el spec, sección
+"Actualización (2026-08-31): webhook en vez de cron"):
+
+- **`Jenkinsfile`** (repo, público): se quitó el bloque `triggers { cron(...) }`
+  por completo — queda solo un comentario explicando que el trigger vive en
+  el VPS, no aquí (el repo es público; un token de webhook en este archivo
+  quedaría expuesto a cualquiera).
+- **`.ops/jenkins/plugins.txt`** (VPS): se agregó `generic-webhook-trigger`.
+- **`.ops/jenkins/casc.yaml`** (VPS): el Job-DSL del job ahora declara
+  ```groovy
+  triggers {
+    genericTrigger {
+      token('<token secreto, no committeado>')
+      causeString('Disparado por push a GitHub (webhook)')
+      printContributedVariables(false)
+      printPostContent(false)
+    }
+  }
+  ```
+  y `authorizationStrategy.loggedInUsersCanDoAnything.allowAnonymousRead`
+  pasó de `false` a `true` (necesario para que el endpoint del webhook sea
+  alcanzable sin sesión; el panel real sigue solo en loopback).
+- **Nginx del host** (`/etc/nginx/sites-available/empalmemotors.com`, no
+  versionado — se respaldó una copia en `/root/backups/icarsell/` antes de
+  tocarlo): se agregó
+  ```nginx
+  location = /generic-webhook-trigger/invoke {
+      proxy_pass http://127.0.0.1:8080/generic-webhook-trigger/invoke;
+      proxy_http_version 1.1;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+  }
+  ```
+  reutilizando el certificado y dominio ya existentes.
+- **Pendiente para el usuario:** dar de alta el webhook en GitHub
+  (`github.com/Berbxr/iCarSell` → Settings → Webhooks → Add webhook):
+  Payload URL `https://empalmemotors.com/generic-webhook-trigger/invoke?token=<token>`
+  (token entregado por separado, no en este documento), Content type
+  `application/json`, evento "Just the push event".
+
+**Nota de intento fallido:** antes de generic-webhook-trigger se probó el
+endpoint nativo del plugin `git` (`/git/notifyCommit`), pero exige un
+"access token" con un mecanismo propio más rígido (ni anónimo ni login
+normal funcionan) — se descartó por simplicidad a favor de
+generic-webhook-trigger.
+
+**Verificación:** llamada de prueba al endpoint devolvió
+`{"triggered":true,...}`; el build resultante tuvo causa "Disparado por
+push a GitHub (webhook)" y `result=SUCCESS`; sitio y los 4 contenedores
+sanos después.
