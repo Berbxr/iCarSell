@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5437:5432"
+      - "127.0.0.1:5437:5432"
     volumes:
       - icarsell-pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -39,7 +39,7 @@ services:
     container_name: icarsell-frontend
     restart: unless-stopped
     ports:
-      - "${HTTP_PORT:-8082}:80"
+      - "127.0.0.1:${HTTP_PORT:-8082}:80"
     depends_on:
       - backend
 

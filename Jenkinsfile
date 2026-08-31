@@ -18,8 +18,8 @@ pipeline {
           git fetch origin master
           git checkout master
           git reset --hard origin/master
-          docker compose -p icarsell -f docker-compose.yml -f docker-compose.prod.yml build
-          docker compose -p icarsell -f docker-compose.yml -f docker-compose.prod.yml up -d
+          docker compose -p icarsell build
+          docker compose -p icarsell up -d
           docker image prune -f
         '''
       }
