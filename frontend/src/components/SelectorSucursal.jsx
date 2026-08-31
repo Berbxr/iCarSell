@@ -8,7 +8,9 @@ export default function SelectorSucursal({ value, onChange, incluirTodas = false
 
   useEffect(() => { api.get('/sucursales?activo=true').then((r) => setSucursales(r.data)).catch(() => {}); }, []);
 
-  if (usuario.rol !== 'ADMIN') return null; // el vendedor opera solo su sucursal
+  // ALMACEN elige sucursal igual que ADMIN (backend lo trata igual en alcance.js);
+  // el vendedor opera solo su sucursal.
+  if (!['ADMIN', 'ALMACEN'].includes(usuario.rol)) return null;
 
   return (
     <select value={value ?? ''} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}>
