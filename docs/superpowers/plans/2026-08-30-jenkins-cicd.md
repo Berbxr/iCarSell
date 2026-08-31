@@ -35,7 +35,7 @@
 - Produces: `python .ops/ssh_exec.py "<comando>"` — ejecuta `<comando>` por SSH en el VPS, imprime stdout/stderr/exit code, sale con código 0 si el comando remoto tuvo éxito. `python .ops/sftp_put.py <local> <remoto>` — sube un archivo por SFTP.
 - Todas las tareas siguientes que tocan el VPS usan estas dos herramientas.
 
-- [ ] **Step 1: Agregar `.ops/` al `.gitignore`**
+- [x] **Step 1: Agregar `.ops/` al `.gitignore`**
 
 Editar `C:\Proyectos\iCarSell\.gitignore` y agregar al final:
 
@@ -43,7 +43,7 @@ Editar `C:\Proyectos\iCarSell\.gitignore` y agregar al final:
 .ops/
 ```
 
-- [ ] **Step 2: Crear el script de ejecución remota**
+- [x] **Step 2: Crear el script de ejecución remota**
 
 Crear `C:\Proyectos\iCarSell\.ops\ssh_exec.py`:
 
@@ -74,7 +74,7 @@ client.close()
 sys.exit(0 if code == 0 else 1)
 ```
 
-- [ ] **Step 3: Crear el script de subida de archivos**
+- [x] **Step 3: Crear el script de subida de archivos**
 
 Crear `C:\Proyectos\iCarSell\.ops\sftp_put.py`:
 
@@ -97,7 +97,7 @@ transport.close()
 print("OK subido a", remote_path)
 ```
 
-- [ ] **Step 4: Verificar dependencias y conectividad**
+- [x] **Step 4: Verificar dependencias y conectividad**
 
 Run:
 ```bash
@@ -107,7 +107,7 @@ python .ops/ssh_exec.py "echo ok && hostname"
 ```
 Expected: `=== STDOUT ===` seguido de `ok` y `my-vps`, `=== EXIT CODE: 0 ===`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/Proyectos/iCarSell
@@ -134,7 +134,7 @@ git commit -m "chore: ignora carpeta .ops (herramientas locales de despliegue)"
 **Interfaces:**
 - Produces: `docker-compose.yml` con los puertos de `db` y `frontend` en `127.0.0.1`, que Task 4 y el `Jenkinsfile` (Task 3) despliegan tal cual (un solo archivo, sin `-f` adicional).
 
-- [ ] **Step 1: Enlazar los puertos de `db` y `frontend` a loopback**
+- [x] **Step 1: Enlazar los puertos de `db` y `frontend` a loopback**
 
 En `C:\Proyectos\iCarSell\docker-compose.yml`, cambiar:
 
@@ -163,7 +163,7 @@ por:
       - "127.0.0.1:${HTTP_PORT:-8082}:80"
 ```
 
-- [ ] **Step 2: Agregar respaldos al `.gitignore`**
+- [x] **Step 2: Agregar respaldos al `.gitignore`**
 
 Agregar al final de `C:\Proyectos\iCarSell\.gitignore`:
 
@@ -172,7 +172,7 @@ backups/
 *.sql
 ```
 
-- [ ] **Step 3: Verificar que el overlay es válido**
+- [x] **Step 3: Verificar que el overlay es válido**
 
 Run:
 ```bash
@@ -181,7 +181,7 @@ docker compose config --services
 ```
 Expected: lista `db`, `backend`, `frontend` sin errores de parseo.
 
-- [ ] **Step 4: Commit y push**
+- [x] **Step 4: Commit y push**
 
 ```bash
 git add docker-compose.yml .gitignore
@@ -200,7 +200,7 @@ git push origin master
 - Consumes: `docker-compose.yml` con hardening de puertos (Task 2), directorio `/root/apps/iCarSell` ya saneado en `master` (Task 4).
 - Produces: pipeline `Deploy` que Task 6/7 registran en Jenkins vía JCasC (`scriptPath('Jenkinsfile')`, rama `master`).
 
-- [ ] **Step 1: Crear el Jenkinsfile**
+- [x] **Step 1: Crear el Jenkinsfile**
 
 Crear `C:\Proyectos\iCarSell\Jenkinsfile`:
 
@@ -244,7 +244,7 @@ pipeline {
 }
 ```
 
-- [ ] **Step 2: Validar la sintaxis del Jenkinsfile localmente**
+- [x] **Step 2: Validar la sintaxis del Jenkinsfile localmente**
 
 Run:
 ```bash
@@ -253,7 +253,7 @@ python -c "import re; s=open('Jenkinsfile').read(); assert s.count('{')==s.count
 ```
 Expected: `ok` (chequeo básico de llaves balanceadas; la validación real ocurre cuando Jenkins cargue el pipeline en Task 8).
 
-- [ ] **Step 3: Commit y push**
+- [x] **Step 3: Commit y push**
 
 ```bash
 git add Jenkinsfile
@@ -272,7 +272,7 @@ git push origin master
 - Consumes: `.ops/ssh_exec.py` (Task 1), `docker-compose.yml` con hardening + `Jenkinsfile` ya en `origin/master` (Tasks 2 y 3).
 - Produces: `/root/apps/iCarSell` en el VPS, en `master`, sin diffs locales, con los 3 contenedores corriendo con el overlay de producción — estado que Task 7 asume al montar el bind mount de Jenkins.
 
-- [ ] **Step 1: Descartar el diff local y cambiar a `master`**
+- [x] **Step 1: Descartar el diff local y cambiar a `master`**
 
 Run:
 ```bash
@@ -280,7 +280,7 @@ python .ops/ssh_exec.py "cd /root/apps/iCarSell && git fetch origin && git check
 ```
 Expected: `=== EXIT CODE: 0 ===` y el `git status` final muestra `On branch master` / `nothing to commit, working tree clean`.
 
-- [ ] **Step 2: Confirmar que llegaron los archivos nuevos**
+- [x] **Step 2: Confirmar que llegaron los archivos nuevos**
 
 Run:
 ```bash
@@ -288,7 +288,7 @@ python .ops/ssh_exec.py "ls /root/apps/iCarSell/Jenkinsfile && grep -c 127.0.0.1
 ```
 Expected: la ruta del Jenkinsfile listada sin error, y el `grep` reporta `2` (los dos puertos con binding a loopback).
 
-- [ ] **Step 3: Mover los respaldos sueltos fuera del repo**
+- [x] **Step 3: Mover los respaldos sueltos fuera del repo**
 
 Run:
 ```bash
@@ -296,7 +296,7 @@ python .ops/ssh_exec.py "mkdir -p /root/backups/icarsell && mv /root/apps/iCarSe
 ```
 Expected: la última línea (`git status --porcelain`) no muestra ningún archivo `.sql` ni carpeta `backups/`.
 
-- [ ] **Step 4: Redeploy manual con el overlay de producción**
+- [x] **Step 4: Redeploy manual con el overlay de producción**
 
 Run:
 ```bash
@@ -304,7 +304,7 @@ python .ops/ssh_exec.py "cd /root/apps/iCarSell && docker compose -p icarsell up
 ```
 Expected: exit code 0, `docker ps` lista `icarsell-db` (healthy), `icarsell-backend` (Up), `icarsell-frontend` (Up), y el puerto de frontend aparece como `127.0.0.1:8082->80/tcp`.
 
-- [ ] **Step 5: Confirmar que el sitio sigue respondiendo**
+- [x] **Step 5: Confirmar que el sitio sigue respondiendo**
 
 Run:
 ```bash
@@ -319,7 +319,7 @@ Expected: `200` (dentro del `=== STDOUT ===`).
 **Files:**
 - Ninguno local — solo comandos remotos.
 
-- [ ] **Step 1: Verificar que no hay swap activo**
+- [x] **Step 1: Verificar que no hay swap activo**
 
 Run:
 ```bash
@@ -327,7 +327,7 @@ python .ops/ssh_exec.py "swapon --show; free -h"
 ```
 Expected: `swapon --show` no imprime filas (sin swap todavía).
 
-- [ ] **Step 2: Crear y activar el swapfile**
+- [x] **Step 2: Crear y activar el swapfile**
 
 Run:
 ```bash
@@ -335,7 +335,7 @@ python .ops/ssh_exec.py "fallocate -l 2G /swapfile && chmod 600 /swapfile && mks
 ```
 Expected: exit code 0, sin errores de `mkswap`/`swapon`.
 
-- [ ] **Step 3: Confirmar el swap activo y persistente**
+- [x] **Step 3: Confirmar el swap activo y persistente**
 
 Run:
 ```bash
@@ -355,7 +355,7 @@ Expected: `swapon --show` lista `/swapfile` con tamaño `2G`; `/etc/fstab` conti
 - Produces: `/root/ci/jenkins/{Dockerfile,plugins.txt,casc.yaml,docker-compose.yml}` en el VPS, que Task 7 construye y levanta.
 - Consumes: `.ops/sftp_put.py` y `.ops/ssh_exec.py` (Task 1).
 
-- [ ] **Step 1: Crear `plugins.txt`**
+- [x] **Step 1: Crear `plugins.txt`**
 
 Crear `C:\Proyectos\iCarSell\.ops\jenkins\plugins.txt`:
 
@@ -366,7 +366,7 @@ git
 workflow-aggregator
 ```
 
-- [ ] **Step 2: Crear `casc.yaml`**
+- [x] **Step 2: Crear `casc.yaml`**
 
 Crear `C:\Proyectos\iCarSell\.ops\jenkins\casc.yaml`:
 
@@ -404,7 +404,7 @@ jobs:
       }
 ```
 
-- [ ] **Step 3: Crear el `Dockerfile`**
+- [x] **Step 3: Crear el `Dockerfile`**
 
 Crear `C:\Proyectos\iCarSell\.ops\jenkins\Dockerfile`:
 
@@ -442,7 +442,7 @@ ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=false"
 ENV CASC_JENKINS_CONFIG="/usr/share/jenkins/casc.yaml"
 ```
 
-- [ ] **Step 4: Crear el `docker-compose.yml` de Jenkins**
+- [x] **Step 4: Crear el `docker-compose.yml` de Jenkins**
 
 Crear `C:\Proyectos\iCarSell\.ops\jenkins\docker-compose.yml`:
 
@@ -467,7 +467,7 @@ volumes:
   jenkins_home:
 ```
 
-- [ ] **Step 5: Subir los 4 archivos al VPS**
+- [x] **Step 5: Subir los 4 archivos al VPS**
 
 Run:
 ```bash
@@ -491,7 +491,7 @@ Expected: cada `sftp_put.py` imprime `OK subido a ...`; el `ls` final lista los 
 - Consumes: `/root/ci/jenkins/*` (Task 6), `/var/run/docker.sock` del host, `/root/apps/iCarSell` ya saneado (Task 4).
 - Produces: contenedor `icarsell-jenkins` corriendo y accesible en `127.0.0.1:8080` del VPS.
 
-- [ ] **Step 1: Generar `.env` con el GID del socket de Docker y una contraseña de administrador**
+- [x] **Step 1: Generar `.env` con el GID del socket de Docker y una contraseña de administrador**
 
 Run:
 ```bash
@@ -501,7 +501,7 @@ Expected: exit code 0; el `=== STDOUT ===` muestra las 3 líneas `DOCKER_GID=...
 
 **Anota la contraseña que aparece aquí — es la única vez que se muestra en texto plano. Es el login del panel de Jenkins.**
 
-- [ ] **Step 2: Construir la imagen**
+- [x] **Step 2: Construir la imagen**
 
 Run:
 ```bash
@@ -509,7 +509,7 @@ python .ops/ssh_exec.py "cd /root/ci/jenkins && docker compose build"
 ```
 Expected: exit code 0, sin errores de `apt-get`, `groupadd` ni `jenkins-plugin-cli` en el log.
 
-- [ ] **Step 3: Levantar el contenedor**
+- [x] **Step 3: Levantar el contenedor**
 
 Run:
 ```bash
@@ -517,7 +517,7 @@ python .ops/ssh_exec.py "cd /root/ci/jenkins && docker compose up -d && sleep 20
 ```
 Expected: `icarsell-jenkins` aparece con estado `Up` y puerto `127.0.0.1:8080->8080/tcp`.
 
-- [ ] **Step 4: Verificar que Jenkins terminó de arrancar sin errores de configuración**
+- [x] **Step 4: Verificar que Jenkins terminó de arrancar sin errores de configuración**
 
 Run:
 ```bash
@@ -535,7 +535,7 @@ Expected: el log contiene `Jenkins is fully up and running`; no hay líneas `SEV
 **Interfaces:**
 - Consumes: contenedor `icarsell-jenkins` corriendo (Task 7), credenciales generadas en Task 7 Step 1.
 
-- [ ] **Step 1: Verificar que el panel responde**
+- [x] **Step 1: Verificar que el panel responde**
 
 Run:
 ```bash
@@ -543,7 +543,7 @@ python .ops/ssh_exec.py "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1
 ```
 Expected: `200`.
 
-- [ ] **Step 2: Verificar el login del usuario admin generado por JCasC**
+- [x] **Step 2: Verificar el login del usuario admin generado por JCasC**
 
 Run (sustituye `<PASS>` por la contraseña obtenida en Task 7 Step 1):
 ```bash
@@ -551,7 +551,7 @@ python .ops/ssh_exec.py "curl -s -o /dev/null -w '%{http_code}' -u admin:<PASS> 
 ```
 Expected: `200` (si devuelve `401`, revisar que `JENKINS_ADMIN_PASSWORD` en `.env` coincide con la que se está probando).
 
-- [ ] **Step 3: Verificar que el job `icarsell-deploy` fue creado por el Job DSL de `casc.yaml`**
+- [x] **Step 3: Verificar que el job `icarsell-deploy` fue creado por el Job DSL de `casc.yaml`**
 
 Run:
 ```bash
@@ -559,7 +559,7 @@ python .ops/ssh_exec.py "curl -s -u admin:<PASS> http://127.0.0.1:8080/job/icars
 ```
 Expected: JSON con `"name":"icarsell-deploy"` y sin `"status":404`.
 
-- [ ] **Step 4: Documentar el acceso al panel para el usuario**
+- [x] **Step 4: Documentar el acceso al panel para el usuario**
 
 No hay archivo que crear — este paso es informativo: comunicar al usuario que puede entrar al panel con:
 ```bash
@@ -577,7 +577,7 @@ y luego abrir `http://localhost:8080` con usuario `admin` y la contraseña gener
 **Interfaces:**
 - Consumes: todo lo anterior. Este task confirma que el sistema completo funciona de punta a punta.
 
-- [ ] **Step 1: Hacer un cambio trivial y subirlo a `master`**
+- [x] **Step 1: Hacer un cambio trivial y subirlo a `master`**
 
 Agregar al final de `C:\Proyectos\iCarSell\README.md`:
 
@@ -596,7 +596,7 @@ git commit -m "docs: nota de CI/CD en el README (prueba end-to-end del pipeline)
 git push origin master
 ```
 
-- [ ] **Step 2: Esperar al poll y confirmar que corrió una build**
+- [x] **Step 2: Esperar al poll y confirmar que corrió una build**
 
 Esperar al menos 3 minutos desde el push. Luego:
 
@@ -606,7 +606,7 @@ python .ops/ssh_exec.py "curl -s -u admin:<PASS> http://127.0.0.1:8080/job/icars
 ```
 Expected: JSON con `"result":"SUCCESS"` y `"building":false`.
 
-- [ ] **Step 3: Confirmar que el VPS quedó en el commit nuevo y los contenedores se recrearon**
+- [x] **Step 3: Confirmar que el VPS quedó en el commit nuevo y los contenedores se recrearon**
 
 Run:
 ```bash
@@ -614,7 +614,7 @@ python .ops/ssh_exec.py "git -C /root/apps/iCarSell log -1 --oneline && docker p
 ```
 Expected: el hash del commit coincide con el del push del Step 1; `icarsell-db`, `icarsell-backend`, `icarsell-frontend` aparecen `Up` (recién recreados).
 
-- [ ] **Step 4: Confirmar que el sitio sigue en línea**
+- [x] **Step 4: Confirmar que el sitio sigue en línea**
 
 Run:
 ```bash
@@ -623,3 +623,38 @@ python .ops/ssh_exec.py "curl -s -o /dev/null -w '%{http_code}' https://empalmem
 Expected: `200`.
 
 Si todos los checks pasan, el pipeline de CI/CD está operativo: cada push a `master` se despliega solo.
+
+---
+
+## Resultado real de la ejecución (2026-08-31)
+
+Plan ejecutado de punta a punta contra el VPS de producción. Se encontraron
+y corrigieron 3 problemas reales durante la implementación (no anticipados
+en el diseño original, documentados también en el spec):
+
+1. **`docker-compose.prod.yml` no protegía nada** — Compose fusiona `ports`
+   de forma aditiva entre archivos `-f`; el hardening quedaba anulado por el
+   binding público del archivo base. Corregido: binding a `127.0.0.1` en el
+   único `docker-compose.yml`, sin overlay.
+2. **`Permission denied` en el bind mount de Jenkins** — `/root` en el host
+   tiene permisos `700`; el usuario `jenkins` (no-root) no podía atravesarlo
+   pese al grupo del socket de Docker. Corregido: el contenedor de Jenkins
+   corre como `root`.
+3. **`pollSCM`/`scm()` poco fiable** — Jenkins actualizaba su baseline de
+   commit sin encolar el build de forma consistente tras el primer poll.
+   Corregido: trigger `cron('H/2 * * * *')` incondicional (el `Jenkinsfile`
+   ya es idempotente).
+
+**Verificación final:** build `#3` del job `icarsell-deploy`, disparado por
+el cron (`"Started by timer"`), tomó el commit `606d191` y terminó con
+`result=SUCCESS` en 182s. El VPS quedó en ese mismo commit, los 4
+contenedores (`icarsell-db`, `icarsell-backend`, `icarsell-frontend`,
+`icarsell-jenkins`) arriba y sanos, y `https://empalmemotors.com` responde
+`200`. Los scripts de diagnóstico temporales (con la contraseña de Jenkins
+en texto plano) se borraron del VPS al terminar.
+
+Pendiente conocido: la advertencia `triggers is deprecated` del plugin
+Job-DSL sigue apareciendo en el log de arranque; no es bloqueante (el job se
+crea y el trigger funciona), pero si una futura versión de Job-DSL elimina
+el soporte, la creación del job tendría que moverse a un Job DSL "seed job"
+clásico en vez de la clave `jobs:` de JCasC.
