@@ -17,6 +17,7 @@ import Sucursales from './pages/Sucursales';
 import Usuarios from './pages/Usuarios';
 import Configuracion from './pages/Configuracion';
 import Auditoria from './pages/Auditoria';
+import Eliminados from './pages/Eliminados';
 
 function Privada({ children }) { return <RequireAuth><Layout>{children}</Layout></RequireAuth>; }
 const SOLO_ADMIN = ['ADMIN'];
@@ -43,6 +44,7 @@ export default function App() {
       <Route path="/usuarios" element={<Privada><RequireRol roles={SOLO_ADMIN}><Usuarios /></RequireRol></Privada>} />
       <Route path="/configuracion" element={<Privada><RequireRol roles={SOLO_ADMIN}><Configuracion /></RequireRol></Privada>} />
       <Route path="/auditoria" element={<Privada><RequireRol roles={SOLO_ADMIN}><Auditoria /></RequireRol></Privada>} />
+      <Route path="/eliminados" element={<Privada><RequireRol roles={SOLO_ADMIN}><Eliminados /></RequireRol></Privada>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

@@ -129,6 +129,8 @@ model Vehiculo {
   precioVenta  Float          @default(0)
   fechaPaseAVenta DateTime?
   estado       EstadoVehiculo @default(DISPONIBLE)
+  activo       Boolean        @default(true)
+  motivoEliminacion String?   // motivo capturado al eliminar (borrado suave); se limpia al restaurar
   notas        String?
   fechaIngreso DateTime       @default(now())
   fotos        VehiculoFoto[]

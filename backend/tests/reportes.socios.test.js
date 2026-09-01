@@ -57,6 +57,8 @@ describe('Reporte de ganancias por socio', () => {
     expect(res.body.disponibles).toHaveLength(1);
     expect(res.body.disponibles[0].utilidadUsd).toBe(5000);
     expect(res.body.disponibles[0].utilidadMxn).toBe(100000); // 5000 * 20
+    const argDisponibles = prisma.vehiculo.findMany.mock.calls.find((c) => c[0].where.estado === 'DISPONIBLE')[0];
+    expect(argDisponibles.where.activo).toBe(true);
   });
 
   test('sin socioId no incluye disponibles', async () => {

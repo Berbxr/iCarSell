@@ -109,6 +109,15 @@ export default function Compra() {
     } catch (err) { setError(err.response?.data?.error || 'No se pudo pasar a venta'); }
   }
 
+  async function eliminar(v) {
+    const motivo = window.prompt(`Eliminar ${v.anio} ${v.marca} ${v.modelo} del inventario de compra. Motivo (opcional):`, '');
+    if (motivo === null) return; // el usuario canceló el diálogo
+    try {
+      await api.delete(`/vehiculos/${v.id}`, { data: { motivo } });
+      await cargar();
+    } catch (err) { window.alert(err.response?.data?.error || 'No se pudo eliminar el vehículo'); }
+  }
+
   return (
     <div>
       <h1>Inventario de compra</h1>
@@ -212,7 +221,10 @@ export default function Compra() {
             <td data-label="Costo total">{v.costoTotal != null ? `$${Number(v.costoTotal).toLocaleString('es-MX')}` : '—'}</td>
             <td data-label="Utilidad">{v.utilidad != null ? `$${Number(v.utilidad).toLocaleString('es-MX')}` : '—'}</td>
             <td data-label="Días en compra">{v.diasEnCompra != null ? v.diasEnCompra : '—'}</td>
-            <td><button className="btn btn-sm" onClick={() => abrir(v.id)}>Abrir</button></td>
+            <td className="row">
+              <button className="btn btn-sm" onClick={() => abrir(v.id)}>Abrir</button>
+              {usuario.rol === 'ADMIN' && <button className="btn btn-sm btn-danger" onClick={() => eliminar(v)}>Eliminar</button>}
+            </td>
           </tr>
         ))}</tbody>
       </table>

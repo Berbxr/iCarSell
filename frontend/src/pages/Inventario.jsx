@@ -39,6 +39,26 @@ export default function Inventario() {
   }
   async function cambiarEstado(v, estado) { await api.patch(`/vehiculos/${v.id}/estado`, { estado }); cargar(); }
 
+  async function eliminar(v) {
+    const motivo = window.prompt(`Eliminar ${v.anio} ${v.marca} ${v.modelo} del inventario. Motivo (opcional):`, '');
+    if (motivo === null) return; // el usuario canceló el diálogo
+    try {
+      await api.delete(`/vehiculos/${v.id}`, { data: { motivo } });
+      cargar();
+    } catch (err) { window.alert(err.response?.data?.error || 'No se pudo eliminar el vehículo'); }
+  }
+
+  async function cancelarVenta(v) {
+    const ventaId = v.ventas?.[0]?.id;
+    if (!ventaId) { window.alert('No se encontró la venta activa de este vehículo'); return; }
+    const motivo = window.prompt('Cancelar la venta. Motivo (opcional):', '');
+    if (motivo === null) return;
+    try {
+      await api.post(`/ventas/${ventaId}/cancelar`, { motivo });
+      cargar();
+    } catch (err) { window.alert(err.response?.data?.error || 'No se pudo cancelar la venta'); }
+  }
+
   return (
     <div>
       <h1>Inventario de venta</h1>
@@ -79,6 +99,9 @@ export default function Inventario() {
                 </select>
               )}
               {!esVendedor && <a className="btn btn-sm" href={`/compra?editar=${v.id}`}>Costos</a>}
+              {usuario.rol === 'ADMIN' && (v.estado === 'VENDIDO'
+                ? <button className="btn btn-sm btn-danger" onClick={() => cancelarVenta(v)}>Cancelar venta</button>
+                : <button className="btn btn-sm btn-danger" onClick={() => eliminar(v)}>Eliminar</button>)}
             </td>
           </tr>
         ))}</tbody>

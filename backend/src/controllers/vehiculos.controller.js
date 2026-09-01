@@ -46,13 +46,21 @@ async function listar(req, res, next) {
     const where = {};
     if (req.query.sucursalId) where.sucursalId = Number(req.query.sucursalId);
     if (req.query.socioId) where.socioId = Number(req.query.socioId);
-    const ESTADOS_VENTA = ['DISPONIBLE', 'RESERVADO', 'VENDIDO'];
-    if (req.query.inventario === 'compra') where.estado = 'EN_COMPRA';
-    else if (req.query.inventario === 'venta') {
-      where.estado = (req.query.estado && ESTADOS_VENTA.includes(req.query.estado))
-        ? req.query.estado
-        : { in: ESTADOS_VENTA };
-    } else if (req.query.estado && ESTADOS.includes(req.query.estado)) where.estado = req.query.estado;
+    const esEliminados = req.query.eliminados === '1';
+    if (esEliminados) {
+      // Papelera de vehículos en borrado suave: solo ADMIN, sin filtro de estado/inventario.
+      if (req.usuario.rol !== 'ADMIN') throw new ApiError(403, 'No autorizado');
+      where.activo = false;
+    } else {
+      where.activo = true;
+      const ESTADOS_VENTA = ['DISPONIBLE', 'RESERVADO', 'VENDIDO'];
+      if (req.query.inventario === 'compra') where.estado = 'EN_COMPRA';
+      else if (req.query.inventario === 'venta') {
+        where.estado = (req.query.estado && ESTADOS_VENTA.includes(req.query.estado))
+          ? req.query.estado
+          : { in: ESTADOS_VENTA };
+      } else if (req.query.estado && ESTADOS.includes(req.query.estado)) where.estado = req.query.estado;
+    }
     if (req.query.buscar) {
       where.OR = [
         { marca: { contains: req.query.buscar, mode: 'insensitive' } },
@@ -60,7 +68,13 @@ async function listar(req, res, next) {
         { vin: { contains: req.query.buscar, mode: 'insensitive' } },
       ];
     }
-    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL } });
+    // En el listado normal solo interesa la venta ACTIVA (para el botón "Cancelar venta").
+    // En la papelera (eliminados) todas las ventas están CANCELADAS por definición: se trae
+    // la más reciente con su motivo para mostrar por qué se canceló.
+    const includeVentas = esEliminados
+      ? { orderBy: { fecha: 'desc' }, take: 1, select: { id: true, fecha: true, estado: true, motivoCancelacion: true, canceladaEn: true } }
+      : { where: { estado: 'ACTIVA' }, select: { id: true, fecha: true } };
+    const lista = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'desc' }, include: { sucursal: { select: { id: true, nombre: true } }, fotos: { orderBy: { orden: 'asc' }, take: 1 }, gastos: true, ventas: includeVentas, socio: SOCIO_SEL } });
     res.json(lista.map((v) => vistaVehiculo(v, req.usuario.rol)));
   } catch (e) { next(e); }
 }
@@ -171,6 +185,46 @@ async function pasarAVenta(req, res, next) {
   } catch (e) { next(e); }
 }
 
+// Eliminar (solo ADMIN, protegido en la ruta):
+// - Si el vehículo está VENDIDO (venta activa), rechaza: primero hay que cancelar la venta.
+// - Si nunca tuvo ninguna venta, borrado permanente (cascada de fotos/gastos + archivos en disco).
+// - Si tuvo una venta ya cancelada, borrado suave (activo:false) para conservar ese historial;
+//   queda visible en la papelera (?eliminados=1) y se puede restaurar.
+async function eliminar(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const motivo = req.body.motivo && String(req.body.motivo).trim() ? String(req.body.motivo).trim() : null;
+    const v = await prisma.vehiculo.findUnique({ where: { id }, include: { fotos: true, ventas: { select: { id: true } } } });
+    if (!v) throw new ApiError(404, 'Vehículo no encontrado');
+    if (v.estado === 'VENDIDO') throw new ApiError(409, 'Cancele la venta antes de eliminar el vehículo');
+
+    if (v.ventas.length > 0) {
+      await prisma.vehiculo.update({ where: { id }, data: { activo: false, motivoEliminacion: motivo } });
+      await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'ELIMINAR_VEHICULO', entidad: 'Vehiculo', entidadId: id, datos: { tipo: 'soft', marca: v.marca, modelo: v.modelo, anio: v.anio, motivo }, ip: req.ip });
+      return res.json({ ok: true, tipo: 'soft' });
+    }
+
+    await prisma.vehiculo.delete({ where: { id } });
+    v.fotos.forEach((f) => eliminarArchivo(f.data));
+    await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'ELIMINAR_VEHICULO', entidad: 'Vehiculo', entidadId: id, datos: { tipo: 'permanente', marca: v.marca, modelo: v.modelo, anio: v.anio, motivo }, ip: req.ip });
+    res.json({ ok: true, tipo: 'permanente' });
+  } catch (e) { next(e); }
+}
+
+// Restaurar un vehículo en borrado suave (solo ADMIN): vuelve a activo:true y reaparece
+// en su inventario según su `estado` actual (quedó en DISPONIBLE al cancelarse la venta).
+async function restaurar(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const v = await prisma.vehiculo.findUnique({ where: { id } });
+    if (!v) throw new ApiError(404, 'Vehículo no encontrado');
+    if (v.activo) throw new ApiError(409, 'El vehículo no está eliminado');
+    const actualizado = await prisma.vehiculo.update({ where: { id }, data: { activo: true, motivoEliminacion: null } });
+    await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'RESTAURAR_VEHICULO', entidad: 'Vehiculo', entidadId: id, ip: req.ip });
+    res.json(actualizado);
+  } catch (e) { next(e); }
+}
+
 async function vinExiste(req, res, next) {
   try {
     const vin = String(req.query.vin || '').trim().toUpperCase();
@@ -186,4 +240,4 @@ async function vinExiste(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { listar, obtener, crear, actualizar, cambiarEstado, agregarGasto, eliminarGasto, pasarAVenta, vinExiste };
+module.exports = { listar, obtener, crear, actualizar, cambiarEstado, agregarGasto, eliminarGasto, pasarAVenta, vinExiste, eliminar, restaurar };

@@ -14,4 +14,6 @@ router.patch('/:id/estado', ctrl.cambiarEstado);
 router.post('/:id/gastos', rbac('ADMIN', 'ALMACEN'), ctrl.agregarGasto);
 router.delete('/:id/gastos/:gastoId', rbac('ADMIN', 'ALMACEN'), ctrl.eliminarGasto);
 router.put('/:id/pasar-a-venta', rbac('ADMIN', 'ALMACEN'), ctrl.pasarAVenta);
+router.delete('/:id', rbac('ADMIN'), ctrl.eliminar);
+router.put('/:id/restaurar', rbac('ADMIN'), ctrl.restaurar);
 module.exports = router;

@@ -39,7 +39,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
   }
 
   const disponibles = await prisma.vehiculo.findMany({
-    where: { ...whereSuc, estado: 'DISPONIBLE' },
+    where: { ...whereSuc, estado: 'DISPONIBLE', activo: true },
     orderBy: { fechaIngreso: 'asc' },
     take: 10,
     include: { sucursal: { select: { id: true, nombre: true } } },
@@ -114,7 +114,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
     .sort((a, b) => b.totalUsd - a.totalUsd)
     .slice(0, 5);
 
-  const grupos = await prisma.vehiculo.groupBy({ by: ['estado'], where: whereSuc, _count: { _all: true } });
+  const grupos = await prisma.vehiculo.groupBy({ by: ['estado'], where: { ...whereSuc, activo: true }, _count: { _all: true } });
   const inventarioEstados = grupos.reduce((a, g) => { a[g.estado] = g._count._all; return a; }, {});
 
   return {

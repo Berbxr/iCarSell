@@ -76,6 +76,34 @@ describe('GET /api/vehiculos visibilidad', () => {
     const arg = prisma.vehiculo.findMany.mock.calls[0][0];
     expect(arg.where.socioId).toBe(5);
   });
+  test('sin filtros, solo trae vehículos activos', async () => {
+    prisma.vehiculo.findMany.mockResolvedValue([]);
+    await request(app).get('/api/vehiculos').set('Authorization', `Bearer ${tokenAdmin}`);
+    const arg = prisma.vehiculo.findMany.mock.calls[0][0];
+    expect(arg.where.activo).toBe(true);
+  });
+
+  test('?eliminados=1 (ADMIN) filtra por activo:false y no aplica el filtro de inventario', async () => {
+    prisma.vehiculo.findMany.mockResolvedValue([]);
+    await request(app).get('/api/vehiculos?eliminados=1&inventario=venta').set('Authorization', `Bearer ${tokenAdmin}`);
+    const arg = prisma.vehiculo.findMany.mock.calls[0][0];
+    expect(arg.where.activo).toBe(false);
+    expect(arg.where.estado).toBeUndefined();
+  });
+
+  test('?eliminados=1 rechazado para no-ADMIN', async () => {
+    const res = await request(app).get('/api/vehiculos?eliminados=1').set('Authorization', `Bearer ${tokenVend}`);
+    expect(res.status).toBe(403);
+  });
+
+  test('?eliminados=1 incluye la venta cancelada (con motivo) en vez de filtrar por ACTIVA', async () => {
+    prisma.vehiculo.findMany.mockResolvedValue([{ ...fila, activo: false, motivoEliminacion: 'Auto regresado', ventas: [{ id: 1, fecha: new Date(), estado: 'CANCELADA', motivoCancelacion: 'Cliente se arrepintió', canceladaEn: new Date() }] }]);
+    await request(app).get('/api/vehiculos?eliminados=1').set('Authorization', `Bearer ${tokenAdmin}`);
+    const arg = prisma.vehiculo.findMany.mock.calls[0][0];
+    expect(arg.include.ventas.where).toBeUndefined();
+    expect(arg.include.ventas.select.motivoCancelacion).toBe(true);
+  });
+
   test('ADMIN recibe el socio del vehículo', async () => {
     prisma.vehiculo.findMany.mockResolvedValue([{ ...fila }]);
     const res = await request(app).get('/api/vehiculos').set('Authorization', `Bearer ${tokenAdmin}`);

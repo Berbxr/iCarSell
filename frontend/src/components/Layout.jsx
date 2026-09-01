@@ -22,6 +22,7 @@ const GRUPOS = [
     { to: '/usuarios', label: 'Usuarios', roles: ['ADMIN'] },
     { to: '/configuracion', label: 'Configuración', roles: ['ADMIN'] },
     { to: '/auditoria', label: 'Auditoría', roles: ['ADMIN'] },
+    { to: '/eliminados', label: 'Eliminados', roles: ['ADMIN'] },
   ] },
   { label: 'Cuenta', items: [
     { to: '/cambiar-password', label: 'Mi contraseña', roles: ['ADMIN', 'VENDEDOR'] },

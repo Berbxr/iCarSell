@@ -45,7 +45,7 @@ async function ventas({ sucursalId, desde, hasta, socioId, esAdmin }) {
 }
 
 async function inventario({ sucursalId }) {
-  const where = {};
+  const where = { activo: true };
   if (sucursalId !== undefined) where.sucursalId = sucursalId;
   const vehiculos = await prisma.vehiculo.findMany({ where, orderBy: { fechaIngreso: 'asc' }, include: { sucursal: { select: { nombre: true } } } });
   const ahora = new Date();
@@ -116,7 +116,7 @@ async function socios({ desde, hasta, socioId }) {
   let disponibles = [];
   if (socioId) {
     const disp = await prisma.vehiculo.findMany({
-      where: { socioId: Number(socioId), estado: 'DISPONIBLE' },
+      where: { socioId: Number(socioId), estado: 'DISPONIBLE', activo: true },
       include: { gastos: true },
       orderBy: { fechaIngreso: 'asc' },
     });
