@@ -6,3 +6,4 @@ uploads/
 .ops/
 backups/
 *.sql
+!backend/prisma/migrations/**/*.sql
