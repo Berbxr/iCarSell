@@ -37,16 +37,17 @@ export default function Socios() {
         </form>
         {error && <p className="error">{error}</p>}
       </div>
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Socio</th><th>Estado</th><th></th></tr></thead>
         <tbody>{lista.map((s) => (
           <tr key={s.id}>
-            <td>
+            <td data-label="Socio">
               {editId === s.id
                 ? <input value={editNombre} onChange={(e) => setEditNombre(e.target.value)} style={{ maxWidth: 240 }} />
                 : s.nombre}
             </td>
-            <td>{s.activo ? 'Activo' : 'Inactivo'}</td>
+            <td data-label="Estado">{s.activo ? 'Activo' : 'Inactivo'}</td>
             <td className="row">
               {editId === s.id ? (
                 <>
@@ -63,6 +64,7 @@ export default function Socios() {
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }

@@ -15,7 +15,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
   const hace6Meses = new Date(ahora.getFullYear(), ahora.getMonth() - 5, 1);
 
   const ventas = await prisma.venta.findMany({
-    where: { ...whereSuc, fecha: { gte: hace6Meses } },
+    where: { ...whereSuc, estado: 'ACTIVA', fecha: { gte: hace6Meses } },
     select: { total: true, fecha: true, empleado: { select: { id: true, nombre: true, apellidos: true } } },
   });
 
@@ -39,7 +39,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
   }
 
   const disponibles = await prisma.vehiculo.findMany({
-    where: { ...whereSuc, estado: 'DISPONIBLE' },
+    where: { ...whereSuc, estado: 'DISPONIBLE', activo: true },
     orderBy: { fechaIngreso: 'asc' },
     take: 10,
     include: { sucursal: { select: { id: true, nombre: true } } },
@@ -63,7 +63,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
 
   // Último auto vendido.
   const ult = await prisma.venta.findFirst({
-    where: whereSuc,
+    where: { ...whereSuc, estado: 'ACTIVA' },
     orderBy: { fecha: 'desc' },
     include: {
       vehiculo: { select: { anio: true, marca: true, modelo: true } },
@@ -81,7 +81,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
   const tipoCambio = config ? config.tipoCambioDolar || 0 : 0;
 
   const ventasMesDetalle = await prisma.venta.findMany({
-    where: { ...whereSuc, fecha: { gte: mesDesde } },
+    where: { ...whereSuc, estado: 'ACTIVA', fecha: { gte: mesDesde } },
     include: { vehiculo: { include: { gastos: true, socio: { select: { id: true, nombre: true } } } } },
   });
 
@@ -114,7 +114,7 @@ async function kpis({ sucursalId, diasAlerta = 60 }) {
     .sort((a, b) => b.totalUsd - a.totalUsd)
     .slice(0, 5);
 
-  const grupos = await prisma.vehiculo.groupBy({ by: ['estado'], where: whereSuc, _count: { _all: true } });
+  const grupos = await prisma.vehiculo.groupBy({ by: ['estado'], where: { ...whereSuc, activo: true }, _count: { _all: true } });
   const inventarioEstados = grupos.reduce((a, g) => { a[g.estado] = g._count._all; return a; }, {});
 
   return {

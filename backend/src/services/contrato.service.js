@@ -99,6 +99,8 @@ function construirHtmlContrato(v) {
       </div>
     </div>
 
+    ${(Number(v.descuento) || 0) > 0 ? `<div class="linea">PRECIO DE LISTA: ${fmtMoneda(Number(v.total) + Number(v.descuento))}</div>
+    <div class="linea">DESCUENTO: -${fmtMoneda(v.descuento)}</div>` : ''}
     <div class="total">TOTAL ${fmtMoneda(v.total)}</div>
     <div class="obs">${esc(v.observaciones)}</div>
     <div class="terminos"><b>TÉRMINOS Y CONDICIONES:</b>\n${esc(v.terminos)}</div>

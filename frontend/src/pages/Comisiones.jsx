@@ -58,15 +58,17 @@ export default function Comisiones() {
                 <h2 style={{ flex: 1 }}>{v.nombre} {v.apellidos}</h2>
                 <strong>Total: ${v.total.toLocaleString('es-MX')}</strong>
               </div>
+              <div className="tabla-wrap">
               <table>
                 <thead><tr><th>Folio</th><th>Vehículo</th><th>Comisión</th></tr></thead>
                 <tbody>{v.ventas.map((venta) => (
                   <tr key={venta.id}>
-                    <td>{venta.folio}</td><td>{venta.vehiculo}</td>
-                    <td>${Number(venta.comision).toLocaleString('es-MX')}</td>
+                    <td data-label="Folio">{venta.folio}</td><td data-label="Vehículo">{venta.vehiculo}</td>
+                    <td data-label="Comisión">${Number(venta.comision).toLocaleString('es-MX')}</td>
                   </tr>
                 ))}</tbody>
               </table>
+              </div>
             </div>
           ))}
         </>

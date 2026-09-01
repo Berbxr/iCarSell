@@ -113,18 +113,20 @@ export default function Configuracion() {
           La comisión (MXN) se asigna por venta según el precio de lista del auto (USD). Se aplica el rango de mayor "Desde (USD)" que sea menor o igual al precio.
         </p>
         <form onSubmit={guardarRangos}>
+          <div className="tabla-wrap">
           <table>
             <thead><tr><th>Desde (USD)</th><th>Comisión (MXN)</th><th></th></tr></thead>
             <tbody>
               {rangos.map((r, i) => (
                 <tr key={i}>
-                  <td><input type="number" min="0" step="1" value={r.desdeUsd} onChange={(e) => setRango(i, 'desdeUsd', e.target.value)} style={{ maxWidth: 140 }} /></td>
-                  <td><input type="number" min="0" step="1" value={r.monto} onChange={(e) => setRango(i, 'monto', e.target.value)} style={{ maxWidth: 140 }} /></td>
+                  <td data-label="Desde (USD)"><input type="number" min="0" step="1" value={r.desdeUsd} onChange={(e) => setRango(i, 'desdeUsd', e.target.value)} style={{ maxWidth: 140 }} /></td>
+                  <td data-label="Comisión (MXN)"><input type="number" min="0" step="1" value={r.monto} onChange={(e) => setRango(i, 'monto', e.target.value)} style={{ maxWidth: 140 }} /></td>
                   <td><button type="button" className="btn btn-sm" onClick={() => quitarRango(i)}>Quitar</button></td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           <div className="row" style={{ marginTop: 10, gap: 8 }}>
             <button type="button" className="btn btn-sm" onClick={agregarRango}>Agregar rango</button>
             <button type="submit" className="btn btn-primary">Guardar rangos</button>

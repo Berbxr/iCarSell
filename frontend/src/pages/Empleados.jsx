@@ -60,12 +60,13 @@ export default function Empleados() {
         </form>
       </div>
 
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Nombre</th><th>Puesto</th><th>Sucursal</th><th>Estado</th><th></th></tr></thead>
         <tbody>{lista.map((em) => (
           <tr key={em.id}>
-            <td>{em.nombre} {em.apellidos}</td><td>{em.puesto}</td><td>{em.sucursal?.nombre}</td>
-            <td>{em.activo ? 'Activo' : 'Inactivo'}</td>
+            <td data-label="Nombre">{em.nombre} {em.apellidos}</td><td data-label="Puesto">{em.puesto}</td><td data-label="Sucursal">{em.sucursal?.nombre}</td>
+            <td data-label="Estado">{em.activo ? 'Activo' : 'Inactivo'}</td>
             <td className="row">
               <button className="btn btn-sm" onClick={() => editar(em)}>Editar</button>
               <button className="btn btn-sm" onClick={() => cambiarEstado(em)}>{em.activo ? 'Desactivar' : 'Activar'}</button>
@@ -73,6 +74,7 @@ export default function Empleados() {
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }

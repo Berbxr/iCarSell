@@ -41,7 +41,8 @@ describe('Dashboard', () => {
     expect(res.body).toHaveProperty('antiguedad');
     expect(res.body).toHaveProperty('ventas6Meses');
     expect(res.body.antiguedad[0].dias).toBeGreaterThanOrEqual(60);
-    expect(prisma.vehiculo.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ sucursalId: 2 }) }));
+    expect(prisma.vehiculo.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ sucursalId: 2, activo: true }) }));
+    expect(prisma.vehiculo.groupBy).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ activo: true }) }));
 
     // Ventas por empleado: Ana con 2 ventas (350) primero, Luis con 1 (80)
     expect(res.body.ventasPorEmpleado).toHaveLength(2);

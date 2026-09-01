@@ -19,9 +19,16 @@ function diasEnCompra(v, ahora = new Date()) {
   const fin = v.fechaPaseAVenta ? new Date(v.fechaPaseAVenta) : ahora;
   return diasEntre(fin, new Date(v.fechaIngreso));
 }
+// La venta "vigente" del vehículo (la no cancelada). Acepta tanto la relación
+// nueva `ventas` (arreglo) como la forma antigua `venta` (objeto) por compatibilidad.
+function ventaVigente(v) {
+  if (Array.isArray(v.ventas)) return v.ventas.find((x) => x.estado !== 'CANCELADA') || null;
+  return v.venta || null;
+}
 function diasEnVenta(v, ahora = new Date()) {
   if (!v.fechaPaseAVenta) return null;
-  const fin = v.venta && v.venta.fecha ? new Date(v.venta.fecha) : ahora;
+  const venta = ventaVigente(v);
+  const fin = venta && venta.fecha ? new Date(venta.fecha) : ahora;
   return diasEntre(fin, new Date(v.fechaPaseAVenta));
 }
 
@@ -43,4 +50,4 @@ function vistaVehiculo(v, rol) {
   };
 }
 
-module.exports = { CAMPOS_COSTO, costoPuestoEnMexico, sumaGastos, costoTotal, utilidad, diasEnCompra, diasEnVenta, vistaVehiculo };
+module.exports = { CAMPOS_COSTO, costoPuestoEnMexico, sumaGastos, costoTotal, utilidad, diasEnCompra, diasEnVenta, ventaVigente, vistaVehiculo };

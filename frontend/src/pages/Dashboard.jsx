@@ -103,45 +103,51 @@ export default function Dashboard() {
 
         <div className="card">
           <h3>Ventas por empleado (últimos 6 meses)</h3>
+          <div className="tabla-wrap">
           <table>
             <thead><tr><th>Empleado</th><th>Ventas</th><th>Monto</th></tr></thead>
             <tbody>
               {data.ventasPorEmpleado.map((e) => (
-                <tr key={e.empleadoId}><td>{e.nombre}</td><td>{e.cantidad}</td><td>{money(e.monto)}</td></tr>
+                <tr key={e.empleadoId}><td data-label="Empleado">{e.nombre}</td><td data-label="Ventas">{e.cantidad}</td><td data-label="Monto">{money(e.monto)}</td></tr>
               ))}
               {data.ventasPorEmpleado.length === 0 && <tr><td colSpan="3" style={{ color: 'var(--muted)' }}>Sin ventas en el periodo.</td></tr>}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
       <div className="card">
         <h3>Ganancia por socio (este mes)</h3>
+        <div className="tabla-wrap">
         <table>
           <thead><tr><th>Socio</th><th>Ganancia USD</th><th>Ganancia MXN</th></tr></thead>
           <tbody>
             {(data.gananciaPorSocio || []).map((s) => (
-              <tr key={s.socioId}><td>{s.nombre}</td><td>{money(s.totalUsd)}</td><td>{money(s.totalMxn)}</td></tr>
+              <tr key={s.socioId}><td data-label="Socio">{s.nombre}</td><td data-label="Ganancia USD">{money(s.totalUsd)}</td><td data-label="Ganancia MXN">{money(s.totalMxn)}</td></tr>
             ))}
             {(!data.gananciaPorSocio || data.gananciaPorSocio.length === 0) && <tr><td colSpan="3" style={{ color: 'var(--muted)' }}>Sin ventas este mes.</td></tr>}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="card">
         <h3>Autos con mayor antigüedad en inventario</h3>
+        <div className="tabla-wrap">
         <table>
           <thead><tr><th>Vehículo</th><th>Sucursal</th><th>Días en inventario</th></tr></thead>
           <tbody>{data.antiguedad.map((v) => (
             <tr key={v.id} className={v.enAlerta ? 'alerta' : ''}>
-              <td>{v.anio} {v.marca} {v.modelo}</td>
-              <td>{v.sucursal?.nombre}</td>
-              <td>{v.dias}{v.enAlerta ? ' ⚠' : ''}</td>
+              <td data-label="Vehículo">{v.anio} {v.marca} {v.modelo}</td>
+              <td data-label="Sucursal">{v.sucursal?.nombre}</td>
+              <td data-label="Días en inventario">{v.dias}{v.enAlerta ? ' ⚠' : ''}</td>
             </tr>
           ))}
           {data.antiguedad.length === 0 && <tr><td colSpan="3" style={{ color: 'var(--muted)' }}>Sin vehículos disponibles.</td></tr>}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

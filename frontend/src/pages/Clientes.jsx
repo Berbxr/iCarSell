@@ -55,15 +55,17 @@ export default function Clientes() {
       <div className="row" style={{ marginBottom: 12 }}>
         <input placeholder="Buscar por nombre…" value={buscar} onChange={(e) => setBuscar(e.target.value)} style={{ maxWidth: 280 }} />
       </div>
+      <div className="tabla-wrap">
       <table>
         <thead><tr><th>Nombre</th><th>Ciudad/Estado</th><th>Teléfono</th><th></th></tr></thead>
         <tbody>{lista.map((c) => (
           <tr key={c.id}>
-            <td>{c.nombre}</td><td>{c.ciudadEstado}</td><td>{c.telefono}</td>
+            <td data-label="Nombre">{c.nombre}</td><td data-label="Ciudad/Estado">{c.ciudadEstado}</td><td data-label="Teléfono">{c.telefono}</td>
             <td><button className="btn btn-sm" onClick={() => editar(c)}>Editar</button></td>
           </tr>
         ))}</tbody>
       </table>
+      </div>
     </div>
   );
 }
