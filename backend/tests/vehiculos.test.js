@@ -103,4 +103,40 @@ describe('Vehiculos', () => {
     await request(app).get('/api/vehiculos/vin-existe?vin=abc&excluir=5').set('Authorization', `Bearer ${tokenVend}`);
     expect(prisma.vehiculo.findFirst.mock.calls[0][0].where.id).toEqual({ not: 5 });
   });
+
+  describe('fechas de costos (fechaCompra, fechaComisionProveedor, fechaTransporte, fechaRegistroPlacas, fechaSalidas)', () => {
+    test('POST guarda las fechas de costo enviadas', async () => {
+      prisma.vehiculo.create.mockClear();
+      prisma.vehiculo.create.mockResolvedValue({ id: 20, marca: 'Kia', sucursalId: 2 });
+      prisma.vehiculo.findUnique.mockResolvedValue({ id: 20, marca: 'Kia', sucursalId: 2, fotos: [], gastos: [] });
+      const res = await request(app).post('/api/vehiculos').set('Authorization', `Bearer ${tokenAlmacen}`).send({
+        anio: 2020, marca: 'Kia', modelo: 'Rio', sucursalId: 2, socioId: 1,
+        fechaCompra: '2026-08-10', fechaComisionProveedor: '2026-08-11',
+        fechaTransporte: '2026-08-12', fechaRegistroPlacas: '2026-08-13', fechaSalidas: '2026-08-14',
+      });
+      expect(res.status).toBe(201);
+      const data = prisma.vehiculo.create.mock.calls[0][0].data;
+      expect(data.fechaCompra).toEqual(new Date('2026-08-10'));
+      expect(data.fechaComisionProveedor).toEqual(new Date('2026-08-11'));
+      expect(data.fechaTransporte).toEqual(new Date('2026-08-12'));
+      expect(data.fechaRegistroPlacas).toEqual(new Date('2026-08-13'));
+      expect(data.fechaSalidas).toEqual(new Date('2026-08-14'));
+    });
+
+    test('POST con fecha de costo inválida => 400', async () => {
+      const res = await request(app).post('/api/vehiculos').set('Authorization', `Bearer ${tokenAlmacen}`).send({
+        anio: 2020, marca: 'Kia', modelo: 'Rio', sucursalId: 2, socioId: 1, fechaCompra: 'no-es-fecha',
+      });
+      expect(res.status).toBe(400);
+    });
+
+    test('PUT con fecha de costo vacía la limpia a null', async () => {
+      prisma.vehiculo.update.mockClear();
+      prisma.vehiculo.update.mockResolvedValue({ id: 20 });
+      prisma.vehiculo.findUnique.mockResolvedValue({ id: 20, marca: 'Kia', sucursalId: 2, fotos: [], gastos: [] });
+      const res = await request(app).put('/api/vehiculos/20').set('Authorization', `Bearer ${tokenAlmacen}`).send({ fechaCompra: '' });
+      expect(res.status).toBe(200);
+      expect(prisma.vehiculo.update.mock.calls[0][0].data.fechaCompra).toBeNull();
+    });
+  });
 });

@@ -22,6 +22,22 @@ describe('Gastos de vehículo', () => {
     expect(prisma.gastoVehiculo.create).toHaveBeenCalledWith({ data: { vehiculoId: 7, descripcion: 'Pintura', monto: 500 } });
   });
 
+  test('ALMACEN agrega un gasto con fecha propia (registro retroactivo)', async () => {
+    prisma.gastoVehiculo.create.mockResolvedValue({ id: 2, vehiculoId: 7, descripcion: 'Pintura', monto: 500, fecha: new Date('2026-08-10') });
+    const res = await request(app).post('/api/vehiculos/7/gastos')
+      .set('Authorization', `Bearer ${tokenAlmacen}`).send({ descripcion: 'Pintura', monto: 500, fecha: '2026-08-10' });
+    expect(res.status).toBe(201);
+    expect(prisma.gastoVehiculo.create).toHaveBeenCalledWith({
+      data: { vehiculoId: 7, descripcion: 'Pintura', monto: 500, fecha: new Date('2026-08-10') },
+    });
+  });
+
+  test('rechaza gasto con fecha inválida', async () => {
+    const res = await request(app).post('/api/vehiculos/7/gastos')
+      .set('Authorization', `Bearer ${tokenAlmacen}`).send({ descripcion: 'Pintura', monto: 500, fecha: 'no-es-fecha' });
+    expect(res.status).toBe(400);
+  });
+
   test('rechaza gasto sin descripción o monto', async () => {
     const res = await request(app).post('/api/vehiculos/7/gastos')
       .set('Authorization', `Bearer ${tokenAlmacen}`).send({ descripcion: '' });

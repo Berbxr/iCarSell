@@ -22,6 +22,13 @@ function datosBase(body) {
   for (const k of ['precioCompra', 'comisionProveedor', 'transporte', 'registroPlacas', 'salidas']) {
     if (body[k] !== undefined) data[k] = Number(body[k]) || 0;
   }
+  for (const k of ['fechaCompra', 'fechaComisionProveedor', 'fechaTransporte', 'fechaRegistroPlacas', 'fechaSalidas']) {
+    if (body[k] === undefined) continue;
+    if (!body[k]) { data[k] = null; continue; }
+    const d = new Date(body[k]);
+    if (Number.isNaN(d.getTime())) throw new ApiError(400, `${k} inválida`);
+    data[k] = d;
+  }
   if (body.precioVenta !== undefined) data.precioVenta = Number(body.precioVenta) || 0;
   if (body.transmision !== undefined) data.transmision = body.transmision || null;
   if (body.combustible !== undefined) data.combustible = body.combustible || null;
@@ -81,7 +88,7 @@ async function listar(req, res, next) {
 
 async function obtener(req, res, next) {
   try {
-    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { createdAt: 'asc' } }, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL } });
+    const v = await prisma.vehiculo.findUnique({ where: { id: Number(req.params.id) }, include: { fotos: { orderBy: { orden: 'asc' } }, sucursal: true, gastos: { orderBy: { fecha: 'asc' } }, ventas: { where: { estado: 'ACTIVA' }, select: { fecha: true } }, socio: SOCIO_SEL } });
     if (!v) throw new ApiError(404, 'Vehículo no encontrado');
     res.json(vistaVehiculo(v, req.usuario.rol));
   } catch (e) { next(e); }
@@ -152,11 +159,17 @@ async function cambiarEstado(req, res, next) {
 async function agregarGasto(req, res, next) {
   try {
     const vehiculoId = Number(req.params.id);
-    const { descripcion, monto } = req.body;
+    const { descripcion, monto, fecha } = req.body;
     if (!descripcion || !String(descripcion).trim() || monto == null || !Number.isFinite(Number(monto))) {
       throw new ApiError(400, 'descripcion y monto son obligatorios');
     }
-    const gasto = await prisma.gastoVehiculo.create({ data: { vehiculoId, descripcion: String(descripcion).trim(), monto: Number(monto) } });
+    const data = { vehiculoId, descripcion: String(descripcion).trim(), monto: Number(monto) };
+    if (fecha) {
+      const fechaGasto = new Date(fecha);
+      if (Number.isNaN(fechaGasto.getTime())) throw new ApiError(400, 'fecha inválida');
+      data.fecha = fechaGasto;
+    }
+    const gasto = await prisma.gastoVehiculo.create({ data });
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'AGREGAR_GASTO_VEHICULO', entidad: 'GastoVehiculo', entidadId: gasto.id, datos: { vehiculoId, monto: gasto.monto }, ip: req.ip });
     res.status(201).json(gasto);
   } catch (e) { next(e); }

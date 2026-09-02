@@ -122,10 +122,15 @@ model Vehiculo {
   transmision  Transmision?
   combustible  Combustible?
   precioCompra      Float     @default(0)
+  fechaCompra       DateTime?
   comisionProveedor Float     @default(0)
+  fechaComisionProveedor DateTime?
   transporte        Float     @default(0)
+  fechaTransporte   DateTime?
   registroPlacas    Float     @default(0)
+  fechaRegistroPlacas DateTime?
   salidas           Float     @default(0)
+  fechaSalidas      DateTime?
   precioVenta  Float          @default(0)
   fechaPaseAVenta DateTime?
   estado       EstadoVehiculo @default(DISPONIBLE)
@@ -227,5 +232,6 @@ model GastoVehiculo {
   vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
   descripcion String
   monto       Float
+  fecha       DateTime @default(now())
   createdAt   DateTime @default(now())
 }

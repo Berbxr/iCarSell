@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
 
-const VACIO = { categoria: '', descripcion: '', monto: '' };
+const hoy = () => new Date().toISOString().slice(0, 10);
+const VACIO = { categoria: '', descripcion: '', monto: '', fecha: hoy() };
 const SUGERENCIAS = ['Insumos', 'Pago empleados', 'Renta', 'Servicios', 'Otro'];
 
 export default function Gastos() {
@@ -23,7 +24,7 @@ export default function Gastos() {
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
   async function crear(e) {
     e.preventDefault(); setError('');
-    try { await api.post('/gastos', { ...form, monto: Number(form.monto) }); setForm(VACIO); cargar(); }
+    try { await api.post('/gastos', { ...form, monto: Number(form.monto) }); setForm({ ...VACIO, fecha: hoy() }); cargar(); }
     catch (err) { setError(err.response?.data?.error || 'Error al guardar'); }
   }
   async function eliminar(g) { await api.delete(`/gastos/${g.id}`); cargar(); }
@@ -34,6 +35,7 @@ export default function Gastos() {
       <div className="card">
         <h3>Nuevo gasto</h3>
         <form onSubmit={crear} className="row">
+          <input type="date" value={form.fecha} onChange={(e) => set('fecha', e.target.value)} style={{ maxWidth: 160 }} required />
           <input list="cats" placeholder="Categoría" value={form.categoria} onChange={(e) => set('categoria', e.target.value)} required />
           <datalist id="cats">{SUGERENCIAS.map((c) => <option key={c} value={c} />)}</datalist>
           <input placeholder="Descripción" value={form.descripcion} onChange={(e) => set('descripcion', e.target.value)} required />
@@ -57,13 +59,16 @@ export default function Gastos() {
 
       <div className="tabla-wrap">
       <table>
-        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Referencia</th><th>Monto</th><th></th></tr></thead>
         <tbody>{data.gastos.map((g) => (
-          <tr key={g.id}>
+          <tr key={`${g.tipo}-${g.id}`}>
             <td data-label="Fecha">{new Date(g.fecha).toLocaleDateString('es-MX')}</td>
             <td data-label="Categoría">{g.categoria}</td><td data-label="Descripción">{g.descripcion}</td>
+            <td data-label="Referencia">{g.referencia || '—'}</td>
             <td data-label="Monto">${Number(g.monto).toLocaleString('es-MX')}</td>
-            <td><button className="btn btn-sm" onClick={() => eliminar(g)}>Eliminar</button></td>
+            <td>{g.tipo === 'auto'
+              ? <span style={{ color: 'var(--muted)', fontSize: 12 }}>Editar en Inventario de compra</span>
+              : <button className="btn btn-sm" onClick={() => eliminar(g)}>Eliminar</button>}</td>
           </tr>
         ))}</tbody>
       </table>
