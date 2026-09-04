@@ -4,7 +4,7 @@ import { useBranding } from '../context/BrandingContext';
 
 export default function Configuracion() {
   const { recargar: recargarBranding } = useBranding();
-  const [form, setForm] = useState({ diasAntiguedadAlerta: 60, terminosContrato: '', tipoCambioDolar: 0 });
+  const [form, setForm] = useState({ diasAntiguedadAlerta: 60, terminosContrato: '', tipoCambioDolar: 0, mostrarGastosAutos: false });
   const [error, setError] = useState('');
   const [ok, setOk] = useState(false);
   const [rangos, setRangos] = useState([]);
@@ -14,7 +14,7 @@ export default function Configuracion() {
   const [okMarca, setOkMarca] = useState(false);
   const [errMarca, setErrMarca] = useState('');
 
-  useEffect(() => { api.get('/configuracion').then((r) => setForm({ diasAntiguedadAlerta: r.data.diasAntiguedadAlerta, terminosContrato: r.data.terminosContrato || '', tipoCambioDolar: r.data.tipoCambioDolar || 0 })); }, []);
+  useEffect(() => { api.get('/configuracion').then((r) => setForm({ diasAntiguedadAlerta: r.data.diasAntiguedadAlerta, terminosContrato: r.data.terminosContrato || '', tipoCambioDolar: r.data.tipoCambioDolar || 0, mostrarGastosAutos: !!r.data.mostrarGastosAutos })); }, []);
   useEffect(() => { api.get('/configuracion/comisiones').then((r) => setRangos(r.data.map((x) => ({ desdeUsd: x.desdeUsd, monto: x.monto })))); }, []);
   useEffect(() => { api.get('/configuracion/branding').then((r) => setMarca({ nombreNegocio: r.data.nombre || '', logo: r.data.logo || null })); }, []);
 
@@ -40,7 +40,7 @@ export default function Configuracion() {
   async function guardar(e) {
     e.preventDefault(); setError(''); setOk(false);
     try {
-      await api.put('/configuracion', { diasAntiguedadAlerta: Number(form.diasAntiguedadAlerta), terminosContrato: form.terminosContrato, tipoCambioDolar: Number(form.tipoCambioDolar) });
+      await api.put('/configuracion', { diasAntiguedadAlerta: Number(form.diasAntiguedadAlerta), terminosContrato: form.terminosContrato, tipoCambioDolar: Number(form.tipoCambioDolar), mostrarGastosAutos: form.mostrarGastosAutos });
       setOk(true);
     } catch (err) { setError(err.response?.data?.error || 'Error al guardar'); }
   }
@@ -100,6 +100,17 @@ export default function Configuracion() {
           <div>
             <label>Términos y condiciones del contrato</label>
             <textarea rows={6} value={form.terminosContrato} onChange={(e) => set('terminosContrato', e.target.value)} />
+          </div>
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={form.mostrarGastosAutos} onChange={(e) => set('mostrarGastosAutos', e.target.checked)} />
+              Mostrar los costos de compra de autos en Gastos generales
+            </label>
+            <p style={{ color: 'var(--muted)', fontSize: 13 }}>
+              Al activarlo, el precio de compra, comisión, transporte, registro/placas, salidas y otros costos
+              capturados en Inventario de compra aparecen también en el módulo de Gastos, como categoría
+              "Gastos de autos". Desactivado, esos costos solo se ven en Inventario de compra.
+            </p>
           </div>
           {error && <p className="error">{error}</p>}
           {ok && <p style={{ color: 'var(--ok)' }}>Configuración guardada.</p>}

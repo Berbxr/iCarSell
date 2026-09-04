@@ -28,6 +28,7 @@ export default function Gastos() {
     catch (err) { setError(err.response?.data?.error || 'Error al guardar'); }
   }
   async function eliminar(g) { await api.delete(`/gastos/${g.id}`); cargar(); }
+  const hayGastosDeAutos = data.gastos.some((g) => g.tipo === 'auto');
 
   return (
     <div>
@@ -59,12 +60,12 @@ export default function Gastos() {
 
       <div className="tabla-wrap">
       <table>
-        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Referencia</th><th>Monto</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th>{hayGastosDeAutos && <th>Referencia</th>}<th>Monto</th><th></th></tr></thead>
         <tbody>{data.gastos.map((g) => (
           <tr key={`${g.tipo}-${g.id}`}>
             <td data-label="Fecha">{new Date(g.fecha).toLocaleDateString('es-MX')}</td>
             <td data-label="Categoría">{g.categoria}</td><td data-label="Descripción">{g.descripcion}</td>
-            <td data-label="Referencia">{g.referencia || '—'}</td>
+            {hayGastosDeAutos && <td data-label="Referencia">{g.referencia || '—'}</td>}
             <td data-label="Monto">${Number(g.monto).toLocaleString('es-MX')}</td>
             <td>{g.tipo === 'auto'
               ? <span style={{ color: 'var(--muted)', fontSize: 12 }}>Editar en Inventario de compra</span>

@@ -5,7 +5,7 @@ const auditoria = require('../services/auditoria.service');
 async function obtener(req, res, next) {
   try {
     const c = await prisma.configuracion.findUnique({ where: { id: 1 } });
-    res.json(c || { id: 1, diasAntiguedadAlerta: 60, terminosContrato: '' });
+    res.json(c || { id: 1, diasAntiguedadAlerta: 60, terminosContrato: '', mostrarGastosAutos: false });
   } catch (e) { next(e); }
 }
 
@@ -29,6 +29,7 @@ async function actualizar(req, res, next) {
       data.nombreNegocio = n;
     }
     if (req.body.logo !== undefined) data.logo = req.body.logo ? String(req.body.logo) : null;
+    if (req.body.mostrarGastosAutos !== undefined) data.mostrarGastosAutos = Boolean(req.body.mostrarGastosAutos);
     const c = await prisma.configuracion.upsert({ where: { id: 1 }, update: data, create: { id: 1, ...data } });
     await auditoria.registrar({ usuarioId: req.usuario.id, accion: 'EDITAR_CONFIGURACION', entidad: 'Configuracion', entidadId: 1, ip: req.ip });
     res.json(c);

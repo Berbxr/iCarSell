@@ -33,24 +33,29 @@ async function listar(req, res, next) {
     const generales = await prisma.gastoGeneral.findMany({ where: whereGeneral, orderBy: { fecha: 'desc' } });
 
     // Costos del inventario de compra (Precio compra, Comisión proveedor, Transporte,
-    // Registro/Placas, Salidas y "Otros costos/gastos"): se muestran aquí como "Gastos de autos",
-    // calculados al vuelo desde Vehiculo/GastoVehiculo (no se duplican en GastoGeneral).
-    const whereVehiculo = { activo: true };
-    if (sucursalId) whereVehiculo.sucursalId = Number(sucursalId);
-    const vehiculos = await prisma.vehiculo.findMany({
-      where: whereVehiculo,
-      select: {
-        id: true, marca: true, modelo: true, anio: true,
-        precioCompra: true, fechaCompra: true,
-        comisionProveedor: true, fechaComisionProveedor: true,
-        transporte: true, fechaTransporte: true,
-        registroPlacas: true, fechaRegistroPlacas: true,
-        salidas: true, fechaSalidas: true,
-        gastos: true,
-      },
-    });
-    let autos = gastosDeAutos(vehiculos);
-    if (desde || hasta) autos = autos.filter((g) => enRango(g.fecha, desde, hasta));
+    // Registro/Placas, Salidas y "Otros costos/gastos"): opcionalmente se muestran aquí como
+    // "Gastos de autos", calculados al vuelo desde Vehiculo/GastoVehiculo (no se duplican en
+    // GastoGeneral). Ocultos por defecto; se activan en Configuración > mostrarGastosAutos.
+    let autos = [];
+    const config = await prisma.configuracion.findUnique({ where: { id: 1 } });
+    if (config?.mostrarGastosAutos) {
+      const whereVehiculo = { activo: true };
+      if (sucursalId) whereVehiculo.sucursalId = Number(sucursalId);
+      const vehiculos = await prisma.vehiculo.findMany({
+        where: whereVehiculo,
+        select: {
+          id: true, marca: true, modelo: true, anio: true,
+          precioCompra: true, fechaCompra: true,
+          comisionProveedor: true, fechaComisionProveedor: true,
+          transporte: true, fechaTransporte: true,
+          registroPlacas: true, fechaRegistroPlacas: true,
+          salidas: true, fechaSalidas: true,
+          gastos: true,
+        },
+      });
+      autos = gastosDeAutos(vehiculos);
+      if (desde || hasta) autos = autos.filter((g) => enRango(g.fecha, desde, hasta));
+    }
 
     const gastos = [...generales.map((g) => ({ ...g, tipo: 'general' })), ...autos]
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));

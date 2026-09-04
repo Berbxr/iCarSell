@@ -1,6 +1,7 @@
 jest.mock('../src/config/prisma', () => ({
   gastoGeneral: { findMany: jest.fn(), create: jest.fn(), delete: jest.fn() },
   vehiculo: { findMany: jest.fn() },
+  configuracion: { findUnique: jest.fn() },
   auditoria: { create: jest.fn() },
 }));
 const request = require('supertest');
@@ -15,6 +16,7 @@ const tokenAlmacen = firmarToken({ id: 3, rol: 'ALMACEN', sucursalId: null });
 beforeEach(() => {
   jest.clearAllMocks();
   prisma.vehiculo.findMany.mockResolvedValue([]); // por defecto, sin autos con costos (la mayoría de los tests no los necesita)
+  prisma.configuracion.findUnique.mockResolvedValue({ id: 1, mostrarGastosAutos: false }); // oculto por defecto
 });
 
 describe('Gastos generales', () => {
@@ -71,7 +73,19 @@ describe('Gastos generales', () => {
       gastos: [],
     };
 
-    test('se agregan al total y a porCategoria bajo "Gastos de autos", con referencia al auto', async () => {
+    test('oculto por defecto (Configuracion.mostrarGastosAutos = false): no se consulta Vehiculo ni se incluyen en el total', async () => {
+      prisma.gastoGeneral.findMany.mockResolvedValue([
+        { id: 1, categoria: 'Insumos', descripcion: 'Aceite', monto: 500, fecha: new Date('2026-08-10') },
+      ]);
+      const res = await request(app).get('/api/gastos').set('Authorization', `Bearer ${tokenAdmin}`);
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(500);
+      expect(res.body.porCategoria['Gastos de autos']).toBeUndefined();
+      expect(prisma.vehiculo.findMany).not.toHaveBeenCalled();
+    });
+
+    test('con mostrarGastosAutos=true: se agregan al total y a porCategoria bajo "Gastos de autos", con referencia al auto', async () => {
+      prisma.configuracion.findUnique.mockResolvedValue({ id: 1, mostrarGastosAutos: true });
       prisma.gastoGeneral.findMany.mockResolvedValue([
         { id: 1, categoria: 'Insumos', descripcion: 'Aceite', monto: 500, fecha: new Date('2026-08-10') },
       ]);
@@ -84,13 +98,15 @@ describe('Gastos generales', () => {
       expect(linea).toMatchObject({ monto: 5000, referencia: 'Kia Rio (2020)', vehiculoId: 7 });
     });
 
-    test('solo trae vehículos activos (where.activo = true)', async () => {
+    test('con mostrarGastosAutos=true: solo trae vehículos activos (where.activo = true)', async () => {
+      prisma.configuracion.findUnique.mockResolvedValue({ id: 1, mostrarGastosAutos: true });
       prisma.vehiculo.findMany.mockResolvedValue([]);
       await request(app).get('/api/gastos').set('Authorization', `Bearer ${tokenAdmin}`);
       expect(prisma.vehiculo.findMany.mock.calls[0][0].where.activo).toBe(true);
     });
 
-    test('el filtro de fechas también aplica a los costos de autos', async () => {
+    test('con mostrarGastosAutos=true: el filtro de fechas también aplica a los costos de autos', async () => {
+      prisma.configuracion.findUnique.mockResolvedValue({ id: 1, mostrarGastosAutos: true });
       prisma.gastoGeneral.findMany.mockResolvedValue([]);
       prisma.vehiculo.findMany.mockResolvedValue([vehiculoConCostos]); // fechaCompra: 2026-08-10
       const res = await request(app).get('/api/gastos?desde=2026-09-01&hasta=2026-09-30').set('Authorization', `Bearer ${tokenAdmin}`);

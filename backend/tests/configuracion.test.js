@@ -68,4 +68,20 @@ describe('Configuracion', () => {
     const res = await request(app).put('/api/configuracion').set('Authorization', `Bearer ${tokenAdmin}`).send({ nombreNegocio: '  ' });
     expect(res.status).toBe(400);
   });
+
+  test('GET expone mostrarGastosAutos = false por defecto si no hay config', async () => {
+    prisma.configuracion.findUnique.mockResolvedValue(null);
+    const res = await request(app).get('/api/configuracion').set('Authorization', `Bearer ${tokenVend}`);
+    expect(res.status).toBe(200);
+    expect(res.body.mostrarGastosAutos).toBe(false);
+  });
+
+  test('PUT (ADMIN) actualiza mostrarGastosAutos', async () => {
+    prisma.configuracion.upsert.mockResolvedValue({ id: 1, mostrarGastosAutos: true });
+    const res = await request(app).put('/api/configuracion').set('Authorization', `Bearer ${tokenAdmin}`).send({ mostrarGastosAutos: true });
+    expect(res.status).toBe(200);
+    expect(prisma.configuracion.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ mostrarGastosAutos: true }),
+    }));
+  });
 });

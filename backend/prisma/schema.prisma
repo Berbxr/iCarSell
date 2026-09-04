@@ -185,6 +185,7 @@ model Configuracion {
   tipoCambioDolar      Float    @default(0)
   nombreNegocio        String   @default("iCarSell")
   logo                 String?
+  mostrarGastosAutos   Boolean  @default(false)
   updatedAt            DateTime @updatedAt
 }
 

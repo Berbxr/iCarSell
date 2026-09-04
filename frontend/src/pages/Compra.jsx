@@ -7,24 +7,12 @@ import { useAuth } from '../context/AuthContext';
 const VACIO = {
   anio: '', marca: '', modelo: '', color: '', vin: '', placa: '', kilometraje: '',
   transmision: '', combustible: '',
-  precioCompra: '', fechaCompra: '',
-  comisionProveedor: '', fechaComisionProveedor: '',
-  transporte: '', fechaTransporte: '',
-  registroPlacas: '', fechaRegistroPlacas: '',
-  salidas: '', fechaSalidas: '',
+  precioCompra: '', comisionProveedor: '', transporte: '', registroPlacas: '', salidas: '',
   precioVenta: '', notas: '', sucursalId: undefined, socioId: '', fotos: [],
 };
-const CAMPOS_FECHA_COSTO = ['fechaCompra', 'fechaComisionProveedor', 'fechaTransporte', 'fechaRegistroPlacas', 'fechaSalidas'];
 
 const urlFoto = (d) => (!d || d.startsWith('data:') || d.startsWith('/api/uploads/')) ? d : `/api/uploads/${d}`;
 const num = (x) => Number(x) || 0;
-const hoy = () => new Date().toISOString().slice(0, 10);
-const soloFecha = (d) => (d ? String(d).slice(0, 10) : '');
-function vacioConFechasHoy() {
-  const f = { ...VACIO };
-  for (const k of CAMPOS_FECHA_COSTO) f[k] = hoy();
-  return f;
-}
 
 export default function Compra() {
   const { usuario } = useAuth();
@@ -32,7 +20,7 @@ export default function Compra() {
   const [form, setForm] = useState(VACIO);
   const [editId, setEditId] = useState(null);
   const [gastos, setGastos] = useState([]);
-  const [nuevoGasto, setNuevoGasto] = useState({ descripcion: '', monto: '', fecha: hoy() });
+  const [nuevoGasto, setNuevoGasto] = useState({ descripcion: '', monto: '' });
   const [mostrarForm, setMostrarForm] = useState(false);
   const [error, setError] = useState('');
   const [vinAviso, setVinAviso] = useState('');
@@ -75,13 +63,12 @@ export default function Compra() {
   const costoTotal = puestoEnMexico + totalGastos;
   const utilidad = num(form.precioVenta) - costoTotal;
 
-  function nuevo() { setEditId(null); setForm(vacioConFechasHoy()); setGastos([]); setNuevoGasto({ descripcion: '', monto: '', fecha: hoy() }); setVinAviso(''); setMostrarForm(true); }
+  function nuevo() { setEditId(null); setForm(VACIO); setGastos([]); setNuevoGasto({ descripcion: '', monto: '' }); setVinAviso(''); setMostrarForm(true); }
 
   async function abrir(id) {
     const { data } = await api.get(`/vehiculos/${id}`);
     setEditId(id);
-    const fechasCosto = Object.fromEntries(CAMPOS_FECHA_COSTO.map((k) => [k, soloFecha(data[k])]));
-    setForm({ ...VACIO, ...data, ...fechasCosto, transmision: data.transmision || '', combustible: data.combustible || '', fotos: (data.fotos || []).map((f) => urlFoto(f.data)) });
+    setForm({ ...VACIO, ...data, transmision: data.transmision || '', combustible: data.combustible || '', fotos: (data.fotos || []).map((f) => urlFoto(f.data)) });
     setGastos(data.gastos || []);
     setVinAviso('');
     setMostrarForm(true);
@@ -104,9 +91,9 @@ export default function Compra() {
   async function agregarGasto() {
     if (!editId) { setError('Guarda primero el auto para agregar gastos'); return; }
     if (!nuevoGasto.descripcion.trim() || nuevoGasto.monto === '') return;
-    const { data } = await api.post(`/vehiculos/${editId}/gastos`, { descripcion: nuevoGasto.descripcion, monto: num(nuevoGasto.monto), fecha: nuevoGasto.fecha || hoy() });
+    const { data } = await api.post(`/vehiculos/${editId}/gastos`, { descripcion: nuevoGasto.descripcion, monto: num(nuevoGasto.monto) });
     setGastos((gs) => [...gs, data]);
-    setNuevoGasto({ descripcion: '', monto: '', fecha: hoy() });
+    setNuevoGasto({ descripcion: '', monto: '' });
   }
   async function quitarGasto(g) {
     await api.delete(`/vehiculos/${editId}/gastos/${g.id}`);
@@ -173,26 +160,11 @@ export default function Compra() {
 
             <h4>Costos (USD)</h4>
             <div className="row">
-              <div style={{ flex: 1 }}>
-                <label>Precio compra</label><input type="number" value={form.precioCompra} onChange={(e) => set('precioCompra', e.target.value)} />
-                <input type="date" value={form.fechaCompra} onChange={(e) => set('fechaCompra', e.target.value)} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label>Comisión proveedor</label><input type="number" value={form.comisionProveedor} onChange={(e) => set('comisionProveedor', e.target.value)} />
-                <input type="date" value={form.fechaComisionProveedor} onChange={(e) => set('fechaComisionProveedor', e.target.value)} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label>Transporte</label><input type="number" value={form.transporte} onChange={(e) => set('transporte', e.target.value)} />
-                <input type="date" value={form.fechaTransporte} onChange={(e) => set('fechaTransporte', e.target.value)} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label>Registro/Placas</label><input type="number" value={form.registroPlacas} onChange={(e) => set('registroPlacas', e.target.value)} />
-                <input type="date" value={form.fechaRegistroPlacas} onChange={(e) => set('fechaRegistroPlacas', e.target.value)} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label>Salidas</label><input type="number" value={form.salidas} onChange={(e) => set('salidas', e.target.value)} />
-                <input type="date" value={form.fechaSalidas} onChange={(e) => set('fechaSalidas', e.target.value)} />
-              </div>
+              <div style={{ flex: 1 }}><label>Precio compra</label><input type="number" value={form.precioCompra} onChange={(e) => set('precioCompra', e.target.value)} /></div>
+              <div style={{ flex: 1 }}><label>Comisión proveedor</label><input type="number" value={form.comisionProveedor} onChange={(e) => set('comisionProveedor', e.target.value)} /></div>
+              <div style={{ flex: 1 }}><label>Transporte</label><input type="number" value={form.transporte} onChange={(e) => set('transporte', e.target.value)} /></div>
+              <div style={{ flex: 1 }}><label>Registro/Placas</label><input type="number" value={form.registroPlacas} onChange={(e) => set('registroPlacas', e.target.value)} /></div>
+              <div style={{ flex: 1 }}><label>Salidas</label><input type="number" value={form.salidas} onChange={(e) => set('salidas', e.target.value)} /></div>
             </div>
             <p><strong>Costo Puesto en México:</strong> ${puestoEnMexico.toLocaleString('es-MX')}</p>
 
@@ -203,7 +175,6 @@ export default function Compra() {
               <tbody>
                 {gastos.map((g) => (
                   <tr key={g.id}>
-                    <td data-label="Fecha">{new Date(g.fecha || g.createdAt).toLocaleDateString('es-MX')}</td>
                     <td data-label="Descripción">{g.descripcion}</td>
                     <td data-label="Monto">${num(g.monto).toLocaleString('es-MX')}</td>
                     <td><button type="button" className="btn btn-sm" onClick={() => quitarGasto(g)}>Quitar</button></td>
@@ -214,7 +185,6 @@ export default function Compra() {
             </div>
             {editId && (
               <div className="row">
-                <input type="date" value={nuevoGasto.fecha} onChange={(e) => setNuevoGasto((n) => ({ ...n, fecha: e.target.value }))} style={{ maxWidth: 160 }} />
                 <input placeholder="Descripción" value={nuevoGasto.descripcion} onChange={(e) => setNuevoGasto((n) => ({ ...n, descripcion: e.target.value }))} />
                 <input type="number" placeholder="Monto" value={nuevoGasto.monto} onChange={(e) => setNuevoGasto((n) => ({ ...n, monto: e.target.value }))} style={{ maxWidth: 140 }} />
                 <button type="button" className="btn btn-sm" onClick={agregarGasto}>Agregar gasto</button>
